@@ -34,10 +34,14 @@ const Controls = ({
   
   const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'));
   const mousePosition = useRef({ x: 0, y: 0 });
+  const isPointerLocked = useRef(false);
   
   // Initialize controls
   useEffect(() => {
+    console.log("Controls component mounted");
+    
     const onKeyDown = (event: KeyboardEvent) => {
+      console.log("Key pressed:", event.code);
       switch (event.code) {
         case 'KeyW':
           moveForward.current = true;
@@ -87,6 +91,8 @@ const Controls = ({
     };
     
     const onMouseMove = (event: MouseEvent) => {
+      if (!isPointerLocked.current) return;
+      
       mousePosition.current.x = event.movementX || 0;
       mousePosition.current.y = event.movementY || 0;
       
@@ -103,17 +109,33 @@ const Controls = ({
       event.preventDefault();
     };
     
+    const onPointerLockChange = () => {
+      isPointerLocked.current = document.pointerLockElement === document.querySelector('canvas');
+      console.log("Pointer lock state changed:", isPointerLocked.current);
+    };
+    
+    const onPointerLockError = () => {
+      console.error("Error with pointer lock");
+    };
+    
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('contextmenu', onContextMenu);
+    document.addEventListener('pointerlockchange', onPointerLockChange);
+    document.addEventListener('pointerlockerror', onPointerLockError);
     
     // Lock pointer on click
     const canvas = document.querySelector('canvas');
     if (canvas) {
       canvas.addEventListener('click', () => {
-        canvas.requestPointerLock();
+        if (!isPointerLocked.current) {
+          canvas.requestPointerLock();
+          console.log("Pointer lock requested");
+        }
       });
+    } else {
+      console.warn("No canvas element found for pointer lock");
     }
     
     return () => {
@@ -121,6 +143,8 @@ const Controls = ({
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('contextmenu', onContextMenu);
+      document.removeEventListener('pointerlockchange', onPointerLockChange);
+      document.removeEventListener('pointerlockerror', onPointerLockError);
       
       document.exitPointerLock();
     };
@@ -128,6 +152,8 @@ const Controls = ({
   
   // Update movement and camera position for third-person view
   useEffect(() => {
+    console.log("Controls movement effect started");
+    
     const updateMovement = () => {
       // Get current velocity
       const currentVelocity = cannonBody.velocity;
@@ -149,6 +175,11 @@ const Controls = ({
           new CANNON.Vec3(rotatedX * force, 0, rotatedZ * force),
           cannonBody.position
         );
+        
+        // Debug movement
+        if (direction.current.z !== 0 || direction.current.x !== 0) {
+          console.log("Moving character. Direction:", { x: rotatedX, z: rotatedZ });
+        }
       }
       
       // Update camera position to follow player (true third-person view)

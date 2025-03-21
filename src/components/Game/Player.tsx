@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
@@ -14,20 +15,7 @@ interface PlayerProps {
   onUpdate?: (position: THREE.Vector3, quaternion: THREE.Quaternion) => void;
 }
 
-const PLAYER_COLORS = [
-  '#E91E63', // Pink
-  '#3F51B5', // Indigo
-  '#4CAF50', // Green
-  '#FF9800', // Orange
-  '#9C27B0', // Purple
-];
-
-const PLAYER_NAMES = [
-  'Seba', 'Mati', 'Żenia', 'Arek', 'Zbyszek',
-  'Waldek', 'Darek', 'Jurek', 'Mirek', 'Tadek',
-];
-
-const Player = ({ 
+const Player: React.FC<PlayerProps> = ({ 
   scene, 
   physicsWorld, 
   position = new THREE.Vector3(0, 2, 0),
@@ -35,12 +23,12 @@ const Player = ({
   playerName,
   isLocalPlayer = false,
   onUpdate
-}: PlayerProps) => {
-  const [health, setHealth] = useState(100);
-  const [score, setScore] = useState(0);
-  
-  const playerColor = useRef(color || PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)]);
-  const name = useRef(playerName || PLAYER_NAMES[Math.floor(Math.random() * PLAYER_NAMES.length)]);
+}) => {
+  // Create refs instead of using useState directly
+  const healthRef = useRef(100);
+  const scoreRef = useRef(0);
+  const playerColorRef = useRef(color || PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)]);
+  const nameRef = useRef(playerName || PLAYER_NAMES[Math.floor(Math.random() * PLAYER_NAMES.length)]);
   
   const meshRef = useRef<THREE.Group | null>(null);
   const bodyRef = useRef<CANNON.Body | null>(null);
@@ -52,11 +40,12 @@ const Player = ({
     isPunching: false,
     isKicking: false,
   });
-  
+
+  // Create player mesh and physics body
   useEffect(() => {
     console.log("Creating player at position:", position);
     
-    const characterMesh = createCharacterModel(playerColor.current);
+    const characterMesh = createCharacterModel(playerColorRef.current);
     meshRef.current = characterMesh;
     characterMesh.position.copy(position);
     scene.add(characterMesh);
@@ -86,7 +75,7 @@ const Player = ({
         context.font = 'bold 32px Arial';
         context.textAlign = 'center';
         context.textBaseline = 'middle';
-        context.fillText(name.current, canvas.width / 2, canvas.height / 2);
+        context.fillText(nameRef.current, canvas.width / 2, canvas.height / 2);
       }
       
       const texture = new THREE.CanvasTexture(canvas);
@@ -96,7 +85,7 @@ const Player = ({
       sprite.scale.set(2, 0.5, 1);
       characterMesh.add(sprite);
       
-      console.log("Remote player created:", name.current);
+      console.log("Remote player created:", nameRef.current);
     }
     
     return () => {
@@ -110,6 +99,7 @@ const Player = ({
     };
   }, [scene, physicsWorld, position, isLocalPlayer, playerName]);
   
+  // Update player position
   useEffect(() => {
     const updatePlayerPosition = () => {
       const mesh = meshRef.current;
@@ -139,6 +129,7 @@ const Player = ({
     };
   }, [onUpdate]);
   
+  // Define player actions
   const jump = () => {
     if (characterControllerRef.current && !characterControllerRef.current.isJumping()) {
       characterControllerRef.current.jump();
@@ -236,18 +227,33 @@ const Player = ({
     }
   };
   
+  // Expose player API
   return {
     mesh: meshRef.current,
     body: bodyRef.current,
     jump,
     punch,
     kick,
-    health,
-    setHealth,
-    score,
-    setScore,
-    name: name.current,
+    health: healthRef.current,
+    setHealth: (value: number) => { healthRef.current = value; },
+    score: scoreRef.current,
+    setScore: (value: number) => { scoreRef.current = value; },
+    name: nameRef.current,
   };
 };
+
+// Constants moved outside the component
+const PLAYER_COLORS = [
+  '#E91E63', // Pink
+  '#3F51B5', // Indigo
+  '#4CAF50', // Green
+  '#FF9800', // Orange
+  '#9C27B0', // Purple
+];
+
+const PLAYER_NAMES = [
+  'Seba', 'Mati', 'Żenia', 'Arek', 'Zbyszek',
+  'Waldek', 'Darek', 'Jurek', 'Mirek', 'Tadek',
+];
 
 export default Player;

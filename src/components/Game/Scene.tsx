@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
@@ -40,6 +41,7 @@ const Scene = ({ containerRef }: SceneProps) => {
   
   // Component state
   const [gameReady, setGameReady] = useState(false);
+  const [playerReady, setPlayerReady] = useState(false);
   
   // Initialize scene
   useEffect(() => {
@@ -93,22 +95,28 @@ const Scene = ({ containerRef }: SceneProps) => {
       const physicsWorld = physicsWorldRef.current;
       
       // Create player
-      const player = Player({
+      const playerObj = Player({
         scene,
         physicsWorld,
-        position: new THREE.Vector3(0, 2, 0),
+        position: new THREE.Vector3(0, 5, 0), // Raised position so player drops onto the ground
         isLocalPlayer: true,
       });
       
-      playerRef.current = player;
+      playerRef.current = playerObj;
       
       // Store player info
-      playerInfoRef.current = {
-        id: 'local-player',
-        name: player.name,
-        health: player.health,
-        score: player.score,
-      };
+      if (playerObj) {
+        playerInfoRef.current = {
+          id: 'local-player',
+          name: playerObj.name,
+          health: playerObj.health,
+          score: playerObj.score,
+        };
+        
+        // Set player as ready
+        setPlayerReady(true);
+        console.log("Player initialized successfully");
+      }
     } catch (error) {
       console.error("Error initializing player:", error);
     }
@@ -116,20 +124,29 @@ const Scene = ({ containerRef }: SceneProps) => {
   
   // Handle player actions
   const handleJump = () => {
-    if (playerRef.current) {
+    if (playerRef.current && playerRef.current.jump) {
+      console.log("Jump action triggered");
       playerRef.current.jump();
+    } else {
+      console.warn("Jump called but player reference or jump method is missing");
     }
   };
   
   const handlePunch = () => {
-    if (playerRef.current) {
+    if (playerRef.current && playerRef.current.punch) {
+      console.log("Punch action triggered");
       playerRef.current.punch();
+    } else {
+      console.warn("Punch called but player reference or punch method is missing");
     }
   };
   
   const handleKick = () => {
-    if (playerRef.current) {
+    if (playerRef.current && playerRef.current.kick) {
+      console.log("Kick action triggered");
       playerRef.current.kick();
+    } else {
+      console.warn("Kick called but player reference or kick method is missing");
     }
   };
   
@@ -146,9 +163,17 @@ const Scene = ({ containerRef }: SceneProps) => {
   // Render controls when player is ready
   const renderControls = () => {
     if (!gameReady || !sceneRef.current || !playerRef.current || !playerRef.current.mesh || !playerRef.current.body) {
+      console.warn("Controls not rendering: not all conditions met", {
+        gameReady,
+        sceneExists: !!sceneRef.current,
+        playerExists: !!playerRef.current,
+        meshExists: playerRef.current && !!playerRef.current.mesh,
+        bodyExists: playerRef.current && !!playerRef.current.body
+      });
       return null;
     }
     
+    console.log("Rendering controls");
     return (
       <Controls 
         camera={sceneRef.current.camera}
@@ -215,7 +240,7 @@ const Scene = ({ containerRef }: SceneProps) => {
       
       if (!otherPlayersRef.current[id]) {
         // Create new player
-        const player = Player({
+        const otherPlayer = Player({
           scene,
           physicsWorld,
           position: new THREE.Vector3(
@@ -228,7 +253,9 @@ const Scene = ({ containerRef }: SceneProps) => {
           isLocalPlayer: false,
         });
         
-        otherPlayersRef.current[id] = player;
+        if (otherPlayer) {
+          otherPlayersRef.current[id] = otherPlayer;
+        }
       } else {
         // Update existing player
         const player = otherPlayersRef.current[id];
@@ -295,6 +322,13 @@ const Scene = ({ containerRef }: SceneProps) => {
     
     return () => clearInterval(interval);
   };
+  
+  // Debug information
+  useEffect(() => {
+    if (playerReady) {
+      console.log("Player is ready. Controls should be active.");
+    }
+  }, [playerReady]);
   
   return (
     <>
