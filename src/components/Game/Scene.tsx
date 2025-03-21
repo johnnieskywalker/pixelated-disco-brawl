@@ -13,6 +13,13 @@ interface SceneProps {
   containerRef: React.RefObject<HTMLDivElement>;
 }
 
+interface PlayerInfo {
+  id: string;
+  name: string;
+  health: number;
+  score: number;
+}
+
 const Scene = ({ containerRef }: SceneProps) => {
   // Game state refs
   const sceneRef = useRef<{
@@ -24,15 +31,10 @@ const Scene = ({ containerRef }: SceneProps) => {
   } | null>(null);
   
   const physicsWorldRef = useRef<CANNON.World | null>(null);
-  const playerRef = useRef<any>(null);
-  const otherPlayersRef = useRef<Record<string, any>>({});
+  const playerRef = useRef<ReturnType<typeof Player> | null>(null);
+  const otherPlayersRef = useRef<Record<string, ReturnType<typeof Player>>>({});
   
-  const playerInfoRef = useRef<{
-    id: string;
-    name: string;
-    health: number;
-    score: number;
-  }>({
+  const playerInfoRef = useRef<PlayerInfo>({
     id: '',
     name: '',
     health: 100,
@@ -94,6 +96,8 @@ const Scene = ({ containerRef }: SceneProps) => {
       const { scene, camera } = sceneRef.current;
       const physicsWorld = physicsWorldRef.current;
       
+      console.log("Creating player instance");
+      
       // Create player
       const playerObj = Player({
         scene,
@@ -102,6 +106,7 @@ const Scene = ({ containerRef }: SceneProps) => {
         isLocalPlayer: true,
       });
       
+      console.log("Player created:", playerObj);
       playerRef.current = playerObj;
       
       // Store player info
@@ -121,6 +126,25 @@ const Scene = ({ containerRef }: SceneProps) => {
       console.error("Error initializing player:", error);
     }
   }, [gameReady]);
+  
+  // Debug player status periodically
+  useEffect(() => {
+    if (!playerReady || !playerRef.current) return;
+    
+    const debugInterval = setInterval(() => {
+      if (playerRef.current) {
+        console.log("Player state:", {
+          mesh: playerRef.current.mesh ? "Exists" : "Missing",
+          body: playerRef.current.body ? "Exists" : "Missing",
+          position: playerRef.current.mesh ? playerRef.current.mesh.position : "N/A",
+          health: playerRef.current.health,
+          score: playerRef.current.score
+        });
+      }
+    }, 5000); // Log every 5 seconds
+    
+    return () => clearInterval(debugInterval);
+  }, [playerReady]);
   
   // Handle player actions
   const handleJump = () => {
@@ -277,11 +301,11 @@ const Scene = ({ containerRef }: SceneProps) => {
         }
         
         // Update health and score
-        if (player.setHealth && playerData.health !== undefined) {
+        if (playerData.health !== undefined) {
           player.setHealth(playerData.health);
         }
         
-        if (player.setScore && playerData.score !== undefined) {
+        if (playerData.score !== undefined) {
           player.setScore(playerData.score);
         }
       }
@@ -301,23 +325,25 @@ const Scene = ({ containerRef }: SceneProps) => {
     
     // Set up interval to send player state
     const interval = setInterval(() => {
-      const mesh = playerRef.current.mesh;
+      const mesh = playerRef.current?.mesh;
       
-      callback({
-        position: {
-          x: mesh.position.x,
-          y: mesh.position.y,
-          z: mesh.position.z,
-        },
-        quaternion: {
-          x: mesh.quaternion.x,
-          y: mesh.quaternion.y,
-          z: mesh.quaternion.z,
-          w: mesh.quaternion.w,
-        },
-        health: playerRef.current.health,
-        score: playerRef.current.score,
-      });
+      if (mesh) {
+        callback({
+          position: {
+            x: mesh.position.x,
+            y: mesh.position.y,
+            z: mesh.position.z,
+          },
+          quaternion: {
+            x: mesh.quaternion.x,
+            y: mesh.quaternion.y,
+            z: mesh.quaternion.z,
+            w: mesh.quaternion.w,
+          },
+          health: playerRef.current?.health || 100,
+          score: playerRef.current?.score || 0,
+        });
+      }
     }, 100); // 10 times per second
     
     return () => clearInterval(interval);

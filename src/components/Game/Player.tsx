@@ -15,7 +15,20 @@ interface PlayerProps {
   onUpdate?: (position: THREE.Vector3, quaternion: THREE.Quaternion) => void;
 }
 
-const Player: React.FC<PlayerProps> = ({ 
+interface PlayerAPI {
+  mesh: THREE.Group | null;
+  body: CANNON.Body | null;
+  jump: () => void;
+  punch: () => void;
+  kick: () => void;
+  health: number;
+  setHealth: (value: number) => void;
+  score: number;
+  setScore: (value: number) => void;
+  name: string;
+}
+
+const Player = ({ 
   scene, 
   physicsWorld, 
   position = new THREE.Vector3(0, 2, 0),
@@ -23,7 +36,7 @@ const Player: React.FC<PlayerProps> = ({
   playerName,
   isLocalPlayer = false,
   onUpdate
-}) => {
+}: PlayerProps): PlayerAPI => {
   // Create refs instead of using useState directly
   const healthRef = useRef(100);
   const scoreRef = useRef(0);

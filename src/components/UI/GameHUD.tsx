@@ -88,11 +88,11 @@ const GameHUD = ({ playerInfo, otherPlayers, timeRemaining, onPause }: GameHUDPr
           <div className="mt-2 space-y-1">
             <p className="font-retro text-xs text-white">WASD - Move</p>
             <p className="font-retro text-xs text-white">MOUSE - Look</p>
-            <p className="font-retro text-xs text-white">LEFT CLICK - Punch</p>
-            <p className="font-retro text-xs text-white">RIGHT CLICK - Kick</p>
+            <p className="font-retro text-xs text-white">Z - Punch</p>
+            <p className="font-retro text-xs text-white">X - Kick</p>
             <p className="font-retro text-xs text-white">SPACE - Jump</p>
-            <p className="font-retro text-xs text-white">E - Use/Pickup</p>
-            <p className="font-retro text-xs text-white">F - Throw</p>
+            <p className="font-retro text-xs text-white">E - Pickup</p>
+            <p className="font-retro text-xs text-white">Q - Throw</p>
             <p className="font-retro text-xs text-white">ESC - Pause</p>
           </div>
         )}
