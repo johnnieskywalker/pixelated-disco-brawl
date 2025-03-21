@@ -46,61 +46,73 @@ const Scene = ({ containerRef }: SceneProps) => {
   useEffect(() => {
     if (!containerRef.current) return;
     
-    // Create Three.js scene
-    const { scene, camera, renderer, composer, cleanUp } = createThreeJsScene(containerRef.current);
-    sceneRef.current = { scene, camera, renderer, composer, cleanUp };
-    
-    // Create physics world
-    const physicsWorld = createPhysicsWorld();
-    physicsWorldRef.current = physicsWorld;
-    
-    // Physics update loop
-    const timeStep = 1 / 60;
-    const physicsLoop = () => {
-      physicsWorld.step(timeStep);
-      requestAnimationFrame(physicsLoop);
-    };
-    
-    const frameId = requestAnimationFrame(physicsLoop);
-    
-    // Set ready state
-    setGameReady(true);
-    
-    return () => {
-      // Clean up
-      cancelAnimationFrame(frameId);
-      cleanUp();
-    };
+    try {
+      console.log("Initializing Three.js scene");
+      // Create Three.js scene
+      const threeSetup = createThreeJsScene(containerRef.current);
+      sceneRef.current = threeSetup;
+      
+      // Create physics world
+      const physicsWorld = createPhysicsWorld();
+      physicsWorldRef.current = physicsWorld;
+      
+      // Physics update loop
+      const timeStep = 1 / 60;
+      const physicsLoop = () => {
+        if (physicsWorld && !physicsWorld.paused) {
+          physicsWorld.step(timeStep);
+        }
+        requestAnimationFrame(physicsLoop);
+      };
+      
+      const frameId = requestAnimationFrame(physicsLoop);
+      
+      // Set ready state
+      setGameReady(true);
+      console.log("Scene initialized successfully");
+      
+      return () => {
+        console.log("Cleaning up Three.js scene");
+        // Clean up
+        cancelAnimationFrame(frameId);
+        if (sceneRef.current) {
+          sceneRef.current.cleanUp();
+        }
+      };
+    } catch (error) {
+      console.error("Error initializing scene:", error);
+      return () => {};
+    }
   }, [containerRef]);
   
   // Initialize player and controls when scene is ready
   useEffect(() => {
     if (!gameReady || !sceneRef.current || !physicsWorldRef.current) return;
     
-    const { scene, camera } = sceneRef.current;
-    const physicsWorld = physicsWorldRef.current;
-    
-    // Create player
-    const player = Player({
-      scene,
-      physicsWorld,
-      position: new THREE.Vector3(0, 2, 0),
-      isLocalPlayer: true,
-    });
-    
-    playerRef.current = player;
-    
-    // Store player info
-    playerInfoRef.current = {
-      id: 'local-player',
-      name: player.name,
-      health: player.health,
-      score: player.score,
-    };
-    
-    return () => {
-      // Clean up will be handled by the Player component
-    };
+    try {
+      const { scene, camera } = sceneRef.current;
+      const physicsWorld = physicsWorldRef.current;
+      
+      // Create player
+      const player = Player({
+        scene,
+        physicsWorld,
+        position: new THREE.Vector3(0, 2, 0),
+        isLocalPlayer: true,
+      });
+      
+      playerRef.current = player;
+      
+      // Store player info
+      playerInfoRef.current = {
+        id: 'local-player',
+        name: player.name,
+        health: player.health,
+        score: player.score,
+      };
+    } catch (error) {
+      console.error("Error initializing player:", error);
+    }
   }, [gameReady]);
   
   // Handle player actions

@@ -185,11 +185,27 @@ export const createThreeJsScene = (container: HTMLElement) => {
     composer,
     cleanUp: () => {
       window.removeEventListener('resize', handleResize);
-      // Since EffectComposer's dispose method is not recognized by TypeScript,
-      // we need to cast it to 'any' to avoid the type error
-      (composer as any).dispose();
-      renderer.dispose();
-      container.removeChild(renderer.domElement);
+      
+      // Properly clean up resources
+      // First dispose of individual passes in the composer
+      if (composer) {
+        for (let i = 0; i < composer.passes.length; i++) {
+          const pass = composer.passes[i];
+          if (pass && typeof pass.dispose === 'function') {
+            pass.dispose();
+          }
+        }
+        // Clear the passes array
+        composer.passes = [];
+      }
+      
+      // Dispose renderer
+      if (renderer) {
+        renderer.dispose();
+        if (container.contains(renderer.domElement)) {
+          container.removeChild(renderer.domElement);
+        }
+      }
     }
   };
 };

@@ -27,12 +27,14 @@ const Game = () => {
   const backgroundMusic = useRef<HTMLAudioElement | null>(null);
   
   useEffect(() => {
+    console.log("Game component mounted");
     // Create audio element for background music
     backgroundMusic.current = new Audio();
     backgroundMusic.current.loop = true;
     backgroundMusic.current.volume = 0.5;
     
     return () => {
+      console.log("Game component unmounting");
       if (backgroundMusic.current) {
         backgroundMusic.current.pause();
       }
@@ -44,6 +46,7 @@ const Game = () => {
     if (gameState === 'loading') {
       // Simulate loading time for better UX
       const loadingTimer = setTimeout(() => {
+        console.log("Loading complete, showing menu");
         setGameState('menu');
       }, 3000);
       
@@ -249,7 +252,7 @@ const Game = () => {
       <div className="scanline"></div>
       <div ref={containerRef} className="absolute inset-0">
         {/* Three.js canvas will be inserted here */}
-        <Scene containerRef={containerRef} />
+        {gameState !== 'loading' && <Scene containerRef={containerRef} />}
       </div>
       {renderGameState()}
     </div>
