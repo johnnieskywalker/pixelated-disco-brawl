@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
@@ -59,7 +58,7 @@ const Scene = ({ containerRef }: SceneProps) => {
       // Physics update loop
       const timeStep = 1 / 60;
       const physicsLoop = () => {
-        if (physicsWorld && !physicsWorld.paused) {
+        if (physicsWorld) {
           physicsWorld.step(timeStep);
         }
         requestAnimationFrame(physicsLoop);

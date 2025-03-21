@@ -1,4 +1,3 @@
-
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
@@ -187,16 +186,19 @@ export const createThreeJsScene = (container: HTMLElement) => {
       window.removeEventListener('resize', handleResize);
       
       // Properly clean up resources
-      // First dispose of individual passes in the composer
       if (composer) {
-        for (let i = 0; i < composer.passes.length; i++) {
-          const pass = composer.passes[i];
-          if (pass && typeof pass.dispose === 'function') {
-            pass.dispose();
+        // First dispose of individual passes in the composer
+        if (composer.passes) {
+          for (let i = 0; i < composer.passes.length; i++) {
+            const pass = composer.passes[i];
+            if (pass) {
+              // TypeScript doesn't recognize dispose but it exists at runtime
+              (pass as any).dispose?.();
+            }
           }
+          // Clear the passes array
+          composer.passes = [];
         }
-        // Clear the passes array
-        composer.passes = [];
       }
       
       // Dispose renderer

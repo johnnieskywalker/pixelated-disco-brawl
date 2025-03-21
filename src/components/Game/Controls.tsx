@@ -29,9 +29,6 @@ const Controls = ({
   const moveLeft = useRef(false);
   const moveRight = useRef(false);
   
-  const mouseDown = useRef(false);
-  const rightMouseDown = useRef(false);
-  
   const velocity = useRef(new THREE.Vector3());
   const direction = useRef(new THREE.Vector3());
   
@@ -57,10 +54,16 @@ const Controls = ({
         case 'Space':
           onJump();
           break;
+        case 'KeyZ':
+          onPunch();
+          break;
+        case 'KeyX':
+          onKick();
+          break;
         case 'KeyE':
           onPickup();
           break;
-        case 'KeyF':
+        case 'KeyQ':
           onThrow();
           break;
       }
@@ -83,38 +86,14 @@ const Controls = ({
       }
     };
     
-    const onMouseDown = (event: MouseEvent) => {
-      if (event.button === 0) {
-        mouseDown.current = true;
-        onPunch();
-      } else if (event.button === 2) {
-        rightMouseDown.current = true;
-        onKick();
-      }
-    };
-    
-    const onMouseUp = (event: MouseEvent) => {
-      if (event.button === 0) {
-        mouseDown.current = false;
-      } else if (event.button === 2) {
-        rightMouseDown.current = false;
-      }
-    };
-    
     const onMouseMove = (event: MouseEvent) => {
       mousePosition.current.x = event.movementX || 0;
       mousePosition.current.y = event.movementY || 0;
       
+      // Only rotate the camera horizontally (for third-person view)
       euler.current.y -= mousePosition.current.x * 0.002;
-      euler.current.x -= mousePosition.current.y * 0.002;
       
-      // Clamp vertical rotation to prevent over-rotation
-      euler.current.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, euler.current.x));
-      
-      // Apply rotation to camera
-      camera.quaternion.setFromEuler(euler.current);
-      
-      // Rotate player mesh to face direction of camera (only Y axis)
+      // Apply rotation to player mesh to face direction of camera (only Y axis)
       const playerRotation = new THREE.Euler(0, euler.current.y, 0, 'YXZ');
       playerMesh.quaternion.setFromEuler(playerRotation);
     };
@@ -126,8 +105,6 @@ const Controls = ({
     
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
-    window.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mouseup', onMouseUp);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('contextmenu', onContextMenu);
     
@@ -142,8 +119,6 @@ const Controls = ({
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
-      window.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('mouseup', onMouseUp);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('contextmenu', onContextMenu);
       
@@ -151,7 +126,7 @@ const Controls = ({
     };
   }, [camera, onJump, onKick, onPickup, onPunch, onThrow, playerMesh]);
   
-  // Update movement
+  // Update movement and camera position for third-person view
   useEffect(() => {
     const updateMovement = () => {
       // Get current velocity
@@ -176,17 +151,26 @@ const Controls = ({
         );
       }
       
-      // Update camera position to follow player
-      const cameraOffset = new THREE.Vector3(0, 2, 5);
+      // Update camera position to follow player (true third-person view)
+      // Position camera behind and slightly above player
+      const cameraOffset = new THREE.Vector3(0, 3, 8); // Higher and further back
       cameraOffset.applyEuler(new THREE.Euler(0, euler.current.y, 0));
       
-      camera.position.copy(
-        new THREE.Vector3(
-          cannonBody.position.x,
-          cannonBody.position.y,
-          cannonBody.position.z
-        )
-      ).add(cameraOffset);
+      const targetPosition = new THREE.Vector3(
+        cannonBody.position.x,
+        cannonBody.position.y,
+        cannonBody.position.z
+      );
+      
+      camera.position.copy(targetPosition).add(cameraOffset);
+      
+      // Make camera look at player with a slight vertical offset
+      const lookTarget = new THREE.Vector3(
+        cannonBody.position.x,
+        cannonBody.position.y + 1.5, // Look at upper body/head level
+        cannonBody.position.z
+      );
+      camera.lookAt(lookTarget);
       
       // Request next frame
       requestAnimationFrame(updateMovement);

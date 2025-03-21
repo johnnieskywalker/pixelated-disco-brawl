@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
@@ -40,16 +39,13 @@ const Player = ({
   const [health, setHealth] = useState(100);
   const [score, setScore] = useState(0);
   
-  // Use random color and name if not provided
   const playerColor = useRef(color || PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)]);
   const name = useRef(playerName || PLAYER_NAMES[Math.floor(Math.random() * PLAYER_NAMES.length)]);
   
-  // Refs for meshes and physics bodies
   const meshRef = useRef<THREE.Group | null>(null);
   const bodyRef = useRef<CANNON.Body | null>(null);
   const characterControllerRef = useRef<{ body: CANNON.Body; jump: () => void; isJumping: () => boolean } | null>(null);
   
-  // Animation state
   const animationState = useRef({
     isWalking: false,
     isJumping: false,
@@ -57,24 +53,22 @@ const Player = ({
     isKicking: false,
   });
   
-  // Initialize player
   useEffect(() => {
-    // Create character mesh
+    console.log("Creating player at position:", position);
+    
     const characterMesh = createCharacterModel(playerColor.current);
     meshRef.current = characterMesh;
     characterMesh.position.copy(position);
     scene.add(characterMesh);
     
-    // Create character physics body
     const cannonPosition = new CANNON.Vec3(position.x, position.y, position.z);
     const characterController = createCharacterBody(cannonPosition);
     characterControllerRef.current = characterController;
     bodyRef.current = characterController.body;
     physicsWorld.addBody(characterController.body);
     
-    // Create name tag
     if (isLocalPlayer) {
-      // Don't show name tag for local player
+      console.log("Local player created");
     } else {
       const canvas = document.createElement('canvas');
       canvas.width = 256;
@@ -101,10 +95,11 @@ const Player = ({
       sprite.position.set(0, 2.5, 0);
       sprite.scale.set(2, 0.5, 1);
       characterMesh.add(sprite);
+      
+      console.log("Remote player created:", name.current);
     }
     
     return () => {
-      // Clean up
       if (meshRef.current) {
         scene.remove(meshRef.current);
       }
@@ -113,9 +108,8 @@ const Player = ({
         physicsWorld.removeBody(bodyRef.current);
       }
     };
-  }, [scene, physicsWorld, position, isLocalPlayer]);
+  }, [scene, physicsWorld, position, isLocalPlayer, playerName]);
   
-  // Update physics and mesh positions
   useEffect(() => {
     const updatePlayerPosition = () => {
       const mesh = meshRef.current;
@@ -130,7 +124,6 @@ const Player = ({
           body.quaternion.w
         );
         
-        // Update parent component if needed
         if (onUpdate) {
           onUpdate(mesh.position, mesh.quaternion);
         }
@@ -146,13 +139,11 @@ const Player = ({
     };
   }, [onUpdate]);
   
-  // Player actions
   const jump = () => {
     if (characterControllerRef.current && !characterControllerRef.current.isJumping()) {
       characterControllerRef.current.jump();
       animationState.current.isJumping = true;
       
-      // Reset jumping animation after a delay
       setTimeout(() => {
         animationState.current.isJumping = false;
       }, 1000);
@@ -163,16 +154,13 @@ const Player = ({
     if (!animationState.current.isPunching) {
       animationState.current.isPunching = true;
       
-      // Simple animation: rotate right arm
       if (meshRef.current) {
         const rightArm = meshRef.current.children[3] as THREE.Mesh;
         
-        // Store original rotation
         const originalRotation = rightArm.rotation.clone();
         
-        // Animate punch
         const punchTween = () => {
-          const duration = 300; // ms
+          const duration = 300;
           const startTime = Date.now();
           
           const animate = () => {
@@ -183,17 +171,14 @@ const Player = ({
               const rightArm = meshRef.current.children[3] as THREE.Mesh;
               
               if (progress < 0.5) {
-                // Punching forward
                 rightArm.rotation.x = originalRotation.x - (progress * 2) * Math.PI / 2;
               } else {
-                // Returning to original position
                 rightArm.rotation.x = originalRotation.x - (1 - ((progress - 0.5) * 2)) * Math.PI / 2;
               }
               
               if (progress < 1) {
                 requestAnimationFrame(animate);
               } else {
-                // Reset rotation and state
                 rightArm.rotation.copy(originalRotation);
                 animationState.current.isPunching = false;
               }
@@ -212,16 +197,13 @@ const Player = ({
     if (!animationState.current.isKicking) {
       animationState.current.isKicking = true;
       
-      // Simple animation: rotate right leg
       if (meshRef.current) {
         const rightLeg = meshRef.current.children[5] as THREE.Mesh;
         
-        // Store original rotation
         const originalRotation = rightLeg.rotation.clone();
         
-        // Animate kick
         const kickTween = () => {
-          const duration = 400; // ms
+          const duration = 400;
           const startTime = Date.now();
           
           const animate = () => {
@@ -232,17 +214,14 @@ const Player = ({
               const rightLeg = meshRef.current.children[5] as THREE.Mesh;
               
               if (progress < 0.5) {
-                // Kicking forward
                 rightLeg.rotation.x = originalRotation.x + (progress * 2) * Math.PI / 2;
               } else {
-                // Returning to original position
                 rightLeg.rotation.x = originalRotation.x + (1 - ((progress - 0.5) * 2)) * Math.PI / 2;
               }
               
               if (progress < 1) {
                 requestAnimationFrame(animate);
               } else {
-                // Reset rotation and state
                 rightLeg.rotation.copy(originalRotation);
                 animationState.current.isKicking = false;
               }
@@ -257,7 +236,6 @@ const Player = ({
     }
   };
   
-  // Expose player methods and state
   return {
     mesh: meshRef.current,
     body: bodyRef.current,
