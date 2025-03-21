@@ -5,6 +5,13 @@ import MainMenu from '../UI/MainMenu';
 import GameHUD from '../UI/GameHUD';
 import Scene from './Scene';
 
+interface PlayerInfo {
+  id: string;
+  name: string;
+  health: number;
+  score: number;
+}
+
 const Game = () => {
   // Game states
   const [gameState, setGameState] = useState<'loading' | 'menu' | 'playing' | 'paused' | 'credits' | 'options'>('loading');
@@ -20,7 +27,7 @@ const Game = () => {
     score: 0,
   });
   
-  const [otherPlayers, setOtherPlayers] = useState<any[]>([]);
+  const [otherPlayers, setOtherPlayers] = useState<PlayerInfo[]>([]);
   const [timeRemaining, setTimeRemaining] = useState(300); // 5 minutes
   
   // Sound effects

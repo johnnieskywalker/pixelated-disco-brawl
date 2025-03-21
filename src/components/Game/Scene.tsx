@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { createThreeJsScene } from '@/utils/three';
 import { createPhysicsWorld } from '@/utils/physics';
 import Environment from './Environment';
@@ -20,13 +21,43 @@ interface PlayerInfo {
   score: number;
 }
 
+// Add these interfaces at the top of the file with your other interfaces
+interface Vector3Data {
+  x: number;
+  y: number;
+  z: number;
+}
+
+interface QuaternionData {
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+}
+
+interface RemotePlayerData {
+  position: Vector3Data;
+  quaternion: QuaternionData;
+  color?: string;
+  name: string;
+  health: number;
+  score: number;
+}
+
+interface PlayerState {
+  position: Vector3Data;
+  quaternion: QuaternionData;
+  health: number;
+  score: number;
+}
+
+
 const Scene = ({ containerRef }: SceneProps) => {
   // Game state refs
   const sceneRef = useRef<{
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
-    renderer: THREE.WebGLRenderer;
-    composer: any;
+    composer: EffectComposer;
     cleanUp: () => void;
   } | null>(null);
   
@@ -147,6 +178,7 @@ const Scene = ({ containerRef }: SceneProps) => {
   }, [playerReady]);
   
   // Handle player actions
+  
   const handleJump = () => {
     if (playerRef.current && playerRef.current.jump) {
       console.log("Jump action triggered");
@@ -250,7 +282,7 @@ const Scene = ({ containerRef }: SceneProps) => {
     }
   };
   
-  const handlePlayerUpdate = (players: Record<string, any>) => {
+  const handlePlayerUpdate = (players: Record<string, RemotePlayerData>) => {
     if (!gameReady || !sceneRef.current || !physicsWorldRef.current) return;
     
     const { scene } = sceneRef.current;
@@ -320,7 +352,7 @@ const Scene = ({ containerRef }: SceneProps) => {
     });
   };
   
-  const handleSendPlayerState = (callback: (state: any) => void) => {
+  const handleSendPlayerState = (callback: (state: PlayerState) => void) => {
     if (!playerRef.current || !playerRef.current.mesh) return;
     
     // Set up interval to send player state
