@@ -1,92 +1,50 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 300 89% 60%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
+    --sidebar-background: 240 10% 3.9%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 300 89% 60%;
     --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 240 4.9% 83.9%;
   }
 }
 
@@ -97,5 +55,104 @@
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    overflow: hidden;
+  }
+}
+
+@layer components {
+  .crt-effect {
+    @apply relative overflow-hidden;
+  }
+  
+  .crt-effect::before {
+    content: "";
+    @apply absolute inset-0 bg-crt-overlay pointer-events-none z-50 opacity-40;
+    background-size: 100% 2px, 3px 100%;
+  }
+  
+  .crt-effect::after {
+    content: "";
+    @apply absolute inset-0 bg-noise-pattern opacity-5 pointer-events-none z-50;
+  }
+  
+  .scanline {
+    @apply absolute inset-0 pointer-events-none z-40;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.15),
+      rgba(0, 0, 0, 0.15) 1px,
+      transparent 1px,
+      transparent 2px
+    );
+  }
+  
+  .ps1-button {
+    @apply relative bg-secondary hover:bg-secondary/80 text-foreground font-pixel py-2 px-4 border-2 border-foreground/20 shadow-md transition-all duration-150;
+    clip-path: polygon(0 10%, 10% 0, 90% 0, 100% 10%, 100% 90%, 90% 100%, 10% 100%, 0 90%);
+  }
+  
+  .ps1-button:hover {
+    @apply transform scale-105 shadow-lg;
+  }
+  
+  .ps1-button:active {
+    @apply transform scale-95 shadow-inner;
+  }
+  
+  .ps1-panel {
+    @apply relative bg-secondary/80 p-5 border-2 border-foreground/20;
+    clip-path: polygon(0 5%, 5% 0, 95% 0, 100% 5%, 100% 95%, 95% 100%, 5% 100%, 0 95%);
+  }
+  
+  .neon-text {
+    @apply font-retro;
+    text-shadow: 0 0 5px theme('colors.disco.purple'), 
+                 0 0 10px theme('colors.disco.purple'),
+                 0 0 20px theme('colors.disco.pink');
+  }
+  
+  .pixel-corners {
+    clip-path: polygon(
+      0px 8px,
+      4px 8px,
+      4px 4px,
+      8px 4px,
+      8px 0px,
+      calc(100% - 8px) 0px,
+      calc(100% - 8px) 4px,
+      calc(100% - 4px) 4px,
+      calc(100% - 4px) 8px,
+      100% 8px,
+      100% calc(100% - 8px),
+      calc(100% - 4px) calc(100% - 8px),
+      calc(100% - 4px) calc(100% - 4px),
+      calc(100% - 8px) calc(100% - 4px),
+      calc(100% - 8px) 100%,
+      8px 100%,
+      8px calc(100% - 4px),
+      4px calc(100% - 4px),
+      4px calc(100% - 8px),
+      0px calc(100% - 8px)
+    );
+  }
+  
+  .health-bar {
+    @apply relative h-4 bg-secondary border border-foreground/30 overflow-hidden;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  }
+  
+  .health-bar-fill {
+    @apply absolute top-0 left-0 h-full bg-disco-red transition-all duration-200;
+  }
+  
+  .glowing-border {
+    @apply relative;
+  }
+
+  .glowing-border::before {
+    content: '';
+    @apply absolute inset-0 -z-10 blur-md opacity-50;
+    background: radial-gradient(circle, theme('colors.disco.purple'), theme('colors.disco.pink'));
   }
 }
