@@ -93,6 +93,7 @@ const Scene = ({ containerRef }: SceneProps) => {
         scene,
         physicsWorld,
         position: playerPosition,
+        color: '#E91E63',  // Bright pink to make it more visible
         isLocalPlayer: true,
         onUpdate: (position) => {
           console.log("Player position updated:", position);
@@ -116,42 +117,6 @@ const Scene = ({ containerRef }: SceneProps) => {
       console.error("Error initializing player:", error);
     }
   }, [gameReady]);
-  
-  // Update camera to follow player
-  useEffect(() => {
-    if (!playerReady || !playerAPI || !playerAPI.mesh || !sceneRef.current) return;
-    
-    const { camera } = sceneRef.current;
-    const playerMesh = playerAPI.mesh;
-    
-    console.log("Setting up camera to follow player");
-    
-    // Position camera
-    camera.position.set(
-      playerMesh.position.x,
-      playerMesh.position.y + 5,
-      playerMesh.position.z + 10
-    );
-    camera.lookAt(playerMesh.position);
-    
-    // Camera following logic
-    const updateCamera = () => {
-      if (!playerAPI || !playerAPI.mesh) return;
-      
-      // Camera offset position
-      const offset = new THREE.Vector3(0, 5, 10);
-      const targetPosition = playerAPI.mesh.position.clone().add(offset);
-      
-      // Smoothly move camera
-      camera.position.lerp(targetPosition, 0.1);
-      camera.lookAt(playerAPI.mesh.position);
-      
-      requestAnimationFrame(updateCamera);
-    };
-    
-    const frameId = requestAnimationFrame(updateCamera);
-    return () => cancelAnimationFrame(frameId);
-  }, [playerReady, playerAPI]);
   
   // Player action handlers
   const handleJump = () => {
@@ -185,17 +150,24 @@ const Scene = ({ containerRef }: SceneProps) => {
   
   return (
     <>
-      {gameReady && playerReady && playerAPI && playerAPI.mesh && playerAPI.body && sceneRef.current && (
-        <Controls 
-          camera={sceneRef.current.camera}
-          cannonBody={playerAPI.body}
-          playerMesh={playerAPI.mesh}
-          onJump={handleJump}
-          onPunch={handlePunch}
-          onKick={handleKick}
-          onPickup={handlePickup}
-          onThrow={handleThrow}
-        />
+      {gameReady && playerReady && playerAPI && sceneRef.current && (
+        <>
+          <Controls 
+            camera={sceneRef.current.camera}
+            cannonBody={playerAPI.body!}
+            playerMesh={playerAPI.mesh!}
+            onJump={handleJump}
+            onPunch={handlePunch}
+            onKick={handleKick}
+            onPickup={handlePickup}
+            onThrow={handleThrow}
+          />
+          
+          <div className="fixed bottom-4 left-4 text-white p-4 bg-black/50 rounded">
+            <p>Player ready! Use WASD to move.</p>
+            <p>Space = Jump, Z = Punch, X = Kick</p>
+          </div>
+        </>
       )}
       
       {gameReady && sceneRef.current && physicsWorldRef.current && (
@@ -203,13 +175,6 @@ const Scene = ({ containerRef }: SceneProps) => {
           scene={sceneRef.current.scene}
           physicsWorld={physicsWorldRef.current}
         />
-      )}
-      
-      {playerReady && (
-        <div className="fixed bottom-4 left-4 text-white p-4 bg-black/50 rounded">
-          <p>Player ready! Use WASD to move.</p>
-          <p>Space = Jump, Z = Punch, X = Kick</p>
-        </div>
       )}
     </>
   );

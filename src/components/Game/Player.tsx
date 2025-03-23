@@ -1,5 +1,4 @@
 
-import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { createCharacterModel } from '@/utils/three';
@@ -26,7 +25,7 @@ interface PlayerProps {
   color?: string;
   playerName?: string;
   isLocalPlayer?: boolean;
-  onUpdate?: (position: THREE.Vector3, quaternion: THREE.Quaternion) => void;
+  onUpdate?: (position: THREE.Vector3, quaternion?: THREE.Quaternion) => void;
 }
 
 interface PlayerAPI {
@@ -51,223 +50,182 @@ const Player = ({
   isLocalPlayer = false,
   onUpdate
 }: PlayerProps): PlayerAPI => {
-  // Create refs for the player state
-  const meshRef = useRef<THREE.Group | null>(null);
-  const bodyRef = useRef<CANNON.Body | null>(null);
-  const characterControllerRef = useRef<{ body: CANNON.Body; jump: () => void; isJumping: () => boolean } | null>(null);
-  const healthRef = useRef(100);
-  const scoreRef = useRef(0);
-  const playerColorRef = useRef(color || PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)]);
-  const nameRef = useRef(playerName || PLAYER_NAMES[Math.floor(Math.random() * PLAYER_NAMES.length)]);
+  console.log("Creating player with props:", { position, color, playerName, isLocalPlayer });
   
-  const animationState = useRef({
-    isWalking: false,
-    isJumping: false,
-    isPunching: false,
-    isKicking: false,
-  });
-
-  // Create player mesh and physics body
-  useEffect(() => {
-    console.log("Creating player at position:", position);
+  // Create character mesh
+  const characterMesh = createCharacterModel(color || PLAYER_COLORS[0]);
+  characterMesh.position.copy(position);
+  scene.add(characterMesh);
+  
+  console.log("Character mesh created and added to scene at position:", position);
+  
+  // Create physics body
+  const cannonPosition = new CANNON.Vec3(position.x, position.y, position.z);
+  const characterController = createCharacterBody(cannonPosition);
+  const characterBody = characterController.body;
+  physicsWorld.addBody(characterBody);
+  
+  console.log("Character physics body created and added to physics world");
+  
+  if (!isLocalPlayer) {
+    // Create nametag for non-local players
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 64;
+    const context = canvas.getContext('2d');
     
-    // Create character mesh
-    const characterMesh = createCharacterModel(playerColorRef.current);
-    meshRef.current = characterMesh;
-    characterMesh.position.copy(position);
-    scene.add(characterMesh);
+    const playerNameVal = playerName || PLAYER_NAMES[Math.floor(Math.random() * PLAYER_NAMES.length)];
     
-    // Create physics body
-    const cannonPosition = new CANNON.Vec3(position.x, position.y, position.z);
-    const characterController = createCharacterBody(cannonPosition);
-    characterControllerRef.current = characterController;
-    bodyRef.current = characterController.body;
-    physicsWorld.addBody(characterController.body);
-    
-    if (isLocalPlayer) {
-      console.log("Local player created");
-    } else {
-      // Create nametag for non-local players
-      const canvas = document.createElement('canvas');
-      canvas.width = 256;
-      canvas.height = 64;
-      const context = canvas.getContext('2d');
+    if (context) {
+      context.fillStyle = '#00000080';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.strokeStyle = '#FFFFFF';
+      context.lineWidth = 2;
+      context.strokeRect(0, 0, canvas.width, canvas.height);
       
-      if (context) {
-        context.fillStyle = '#00000080';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.strokeStyle = '#FFFFFF';
-        context.lineWidth = 2;
-        context.strokeRect(0, 0, canvas.width, canvas.height);
-        
-        context.fillStyle = '#FFFFFF';
-        context.font = 'bold 32px Arial';
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
-        context.fillText(nameRef.current, canvas.width / 2, canvas.height / 2);
-      }
-      
-      const texture = new THREE.CanvasTexture(canvas);
-      const material = new THREE.SpriteMaterial({ map: texture });
-      const sprite = new THREE.Sprite(material);
-      sprite.position.set(0, 2.5, 0);
-      sprite.scale.set(2, 0.5, 1);
-      characterMesh.add(sprite);
-      
-      console.log("Remote player created:", nameRef.current);
+      context.fillStyle = '#FFFFFF';
+      context.font = 'bold 32px Arial';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText(playerNameVal, canvas.width / 2, canvas.height / 2);
     }
     
-    return () => {
-      if (meshRef.current) {
-        scene.remove(meshRef.current);
-      }
-      
-      if (bodyRef.current) {
-        physicsWorld.removeBody(bodyRef.current);
-      }
-    };
-  }, [scene, physicsWorld, position, isLocalPlayer, playerName]);
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ map: texture });
+    const sprite = new THREE.Sprite(material);
+    sprite.position.set(0, 2.5, 0);
+    sprite.scale.set(2, 0.5, 1);
+    characterMesh.add(sprite);
+  }
   
-  // Update player position
-  useEffect(() => {
-    const updatePlayerPosition = () => {
-      const mesh = meshRef.current;
-      const body = bodyRef.current;
-      
-      if (mesh && body) {
-        mesh.position.set(body.position.x, body.position.y, body.position.z);
-        mesh.quaternion.set(
-          body.quaternion.x,
-          body.quaternion.y,
-          body.quaternion.z,
-          body.quaternion.w
-        );
-        
-        if (onUpdate) {
-          onUpdate(mesh.position, mesh.quaternion);
-        }
-      }
-      
-      requestAnimationFrame(updatePlayerPosition);
-    };
+  // Update function to sync mesh with physics
+  const updateMeshPosition = () => {
+    characterMesh.position.set(
+      characterBody.position.x,
+      characterBody.position.y,
+      characterBody.position.z
+    );
     
-    const frameId = requestAnimationFrame(updatePlayerPosition);
+    characterMesh.quaternion.set(
+      characterBody.quaternion.x,
+      characterBody.quaternion.y,
+      characterBody.quaternion.z,
+      characterBody.quaternion.w
+    );
     
-    return () => {
-      cancelAnimationFrame(frameId);
-    };
-  }, [onUpdate]);
+    if (onUpdate) {
+      onUpdate(characterMesh.position, characterMesh.quaternion);
+    }
+    
+    requestAnimationFrame(updateMeshPosition);
+  };
   
-  // Define player actions
+  requestAnimationFrame(updateMeshPosition);
+  
+  // Animation state
+  let isJumping = false;
+  let isPunching = false;
+  let isKicking = false;
+  
+  // Player actions
   const jump = () => {
-    if (characterControllerRef.current && !characterControllerRef.current.isJumping()) {
-      characterControllerRef.current.jump();
-      animationState.current.isJumping = true;
+    if (!isJumping && characterController.isJumping && !characterController.isJumping()) {
+      characterController.jump();
+      isJumping = true;
       
       setTimeout(() => {
-        animationState.current.isJumping = false;
+        isJumping = false;
       }, 1000);
     }
   };
   
   const punch = () => {
-    if (!animationState.current.isPunching) {
-      animationState.current.isPunching = true;
+    if (!isPunching) {
+      isPunching = true;
       
-      if (meshRef.current) {
-        const rightArm = meshRef.current.children[3] as THREE.Mesh;
+      const rightArm = characterMesh.children[3] as THREE.Mesh;
+      const originalRotation = rightArm.rotation.clone();
+      
+      const punchTween = () => {
+        const duration = 300;
+        const startTime = Date.now();
         
-        const originalRotation = rightArm.rotation.clone();
-        
-        const punchTween = () => {
-          const duration = 300;
-          const startTime = Date.now();
+        const animate = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
           
-          const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            if (meshRef.current) {
-              const rightArm = meshRef.current.children[3] as THREE.Mesh;
-              
-              if (progress < 0.5) {
-                rightArm.rotation.x = originalRotation.x - (progress * 2) * Math.PI / 2;
-              } else {
-                rightArm.rotation.x = originalRotation.x - (1 - ((progress - 0.5) * 2)) * Math.PI / 2;
-              }
-              
-              if (progress < 1) {
-                requestAnimationFrame(animate);
-              } else {
-                rightArm.rotation.copy(originalRotation);
-                animationState.current.isPunching = false;
-              }
-            }
-          };
+          if (progress < 0.5) {
+            rightArm.rotation.x = originalRotation.x - (progress * 2) * Math.PI / 2;
+          } else {
+            rightArm.rotation.x = originalRotation.x - (1 - ((progress - 0.5) * 2)) * Math.PI / 2;
+          }
           
-          requestAnimationFrame(animate);
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            rightArm.rotation.copy(originalRotation);
+            isPunching = false;
+          }
         };
         
-        punchTween();
-      }
+        requestAnimationFrame(animate);
+      };
+      
+      punchTween();
     }
   };
   
   const kick = () => {
-    if (!animationState.current.isKicking) {
-      animationState.current.isKicking = true;
+    if (!isKicking) {
+      isKicking = true;
       
-      if (meshRef.current) {
-        const rightLeg = meshRef.current.children[5] as THREE.Mesh;
+      const rightLeg = characterMesh.children[5] as THREE.Mesh;
+      const originalRotation = rightLeg.rotation.clone();
+      
+      const kickTween = () => {
+        const duration = 400;
+        const startTime = Date.now();
         
-        const originalRotation = rightLeg.rotation.clone();
-        
-        const kickTween = () => {
-          const duration = 400;
-          const startTime = Date.now();
+        const animate = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
           
-          const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            if (meshRef.current) {
-              const rightLeg = meshRef.current.children[5] as THREE.Mesh;
-              
-              if (progress < 0.5) {
-                rightLeg.rotation.x = originalRotation.x + (progress * 2) * Math.PI / 2;
-              } else {
-                rightLeg.rotation.x = originalRotation.x + (1 - ((progress - 0.5) * 2)) * Math.PI / 2;
-              }
-              
-              if (progress < 1) {
-                requestAnimationFrame(animate);
-              } else {
-                rightLeg.rotation.copy(originalRotation);
-                animationState.current.isKicking = false;
-              }
-            }
-          };
+          if (progress < 0.5) {
+            rightLeg.rotation.x = originalRotation.x + (progress * 2) * Math.PI / 2;
+          } else {
+            rightLeg.rotation.x = originalRotation.x + (1 - ((progress - 0.5) * 2)) * Math.PI / 2;
+          }
           
-          requestAnimationFrame(animate);
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            rightLeg.rotation.copy(originalRotation);
+            isKicking = false;
+          }
         };
         
-        kickTween();
-      }
+        requestAnimationFrame(animate);
+      };
+      
+      kickTween();
     }
   };
   
-  // Expose player API
+  // Health and score
+  let health = 100;
+  let score = 0;
+  
   return {
-    mesh: meshRef.current,
-    body: bodyRef.current,
+    mesh: characterMesh,
+    body: characterBody,
     jump,
     punch,
     kick,
-    health: healthRef.current,
-    setHealth: (value: number) => { healthRef.current = value; },
-    score: scoreRef.current,
-    setScore: (value: number) => { scoreRef.current = value; },
-    name: nameRef.current,
+    health,
+    setHealth: (value: number) => { health = value; },
+    score,
+    setScore: (value: number) => { score = value; },
+    name: playerName || PLAYER_NAMES[Math.floor(Math.random() * PLAYER_NAMES.length)],
   };
 };
 
