@@ -11,9 +11,10 @@ import NPCManager from './NPCManager';
 
 interface SceneProps {
   containerRef: React.RefObject<HTMLDivElement>;
+  onUpdatePlayerInfo?: (info: {health?: number; score?: number}) => void;
 }
 
-const Scene = ({ containerRef }: SceneProps) => {
+const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
   const sceneRef = useRef<{
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
@@ -22,11 +23,17 @@ const Scene = ({ containerRef }: SceneProps) => {
   } | null>(null);
   
   const physicsWorldRef = useRef<CANNON.World | null>(null);
+  const npcsRef = useRef<THREE.Object3D[]>([]);
   const [playerAPI, setPlayerAPI] = useState<ReturnType<typeof Player> | null>(null);
   
   const [gameReady, setGameReady] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
   const [playerHealth, setPlayerHealth] = useState(100);
+  const [playerPosition, setPlayerPosition] = useState(new THREE.Vector3(0, 0, 0));
+  const [playerScore, setPlayerScore] = useState(0);
+  const [playerName, setPlayerName] = useState('Player');
+  const [gameTime, setGameTime] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
   
   // Movement state tracking
   const movementRef = useRef({
@@ -160,6 +167,23 @@ const Scene = ({ containerRef }: SceneProps) => {
   }, [playerReady, playerAPI]);
   */
   
+  // Add an effect to track player position for NPCs to follow
+  useEffect(() => {
+    if (playerAPI && playerAPI.body) {
+      const updatePlayerPosition = () => {
+        setPlayerPosition(new THREE.Vector3(
+          playerAPI.body.position.x,
+          playerAPI.body.position.y,
+          playerAPI.body.position.z
+        ));
+        requestAnimationFrame(updatePlayerPosition);
+      };
+      
+      const frameId = requestAnimationFrame(updatePlayerPosition);
+      return () => cancelAnimationFrame(frameId);
+    }
+  }, [playerAPI]);
+
   // Player action handlers
   const handleJump = () => {
     if (playerAPI && playerAPI.jump) {
@@ -190,16 +214,35 @@ const Scene = ({ containerRef }: SceneProps) => {
     console.log("Throw action");
   };
 
+  // First, let's fix the damage handler to ensure logging
   const handleDamagePlayer = (amount: number) => {
-    setPlayerHealth(prev => Math.max(0, prev - amount));
-    if (playerAPI) {
-      playerAPI.setHealth(Math.max(0, playerHealth - amount));
-    }
+    console.log(`Player taking ${amount} damage, current health: ${playerHealth}`);
     
-    // Optional: Play hit sound or visual effect
-    console.log(`Player took ${amount} damage! Health: ${playerHealth - amount}`);
+    // Update health state
+    setPlayerHealth(prevHealth => {
+      const newHealth = Math.max(0, prevHealth - amount);
+      console.log(`Player health updated from ${prevHealth} to ${newHealth}`);
+      
+      // Update player model's health
+      if (playerAPI && playerAPI.setHealth) {
+        playerAPI.setHealth(newHealth);
+      }
+      
+      // IMPORTANT: Update Game's player info
+      if (onUpdatePlayerInfo) {
+        onUpdatePlayerInfo({ health: newHealth });
+      }
+      
+      // Game over if health reaches zero
+      if (newHealth <= 0 && !gameOver) {
+        setGameOver(true);
+        console.log("Player defeated!");
+      }
+      
+      return newHealth;
+    });
   };
-  
+
   return (
     <>
       {gameReady && playerReady && playerAPI && sceneRef.current && (
@@ -213,6 +256,12 @@ const Scene = ({ containerRef }: SceneProps) => {
             onKick={handleKick}
             onPickup={handlePickup}
             onThrow={handleThrow}
+            npcs={npcsRef.current.map(npc => ({ api: { id: npc.uuid, body: new CANNON.Body(), mesh: npc } })) || []}  // Add this line to pass NPCs to Controls
+            onDamageNPC={(id, amount) => {
+              // Handle NPC damage and score
+              console.log(`NPC ${id} damaged by ${amount}`);
+              setPlayerScore(prev => prev + amount);
+            }}
           />
           
           <div className="fixed bottom-4 left-4 text-white p-4 bg-black/50 rounded">
@@ -234,20 +283,10 @@ const Scene = ({ containerRef }: SceneProps) => {
         <NPCManager 
           scene={sceneRef.current.scene}
           physicsWorld={physicsWorldRef.current}
-          playerPosition={new THREE.Vector3(
-            playerAPI.body.position.x,
-            playerAPI.body.position.y,
-            playerAPI.body.position.z
-          )}
+          playerPosition={playerPosition}
           playerHealth={playerHealth}
           onDamagePlayer={handleDamagePlayer}
         />
-      )}
-
-      {gameReady && playerReady && (
-        <div className="fixed top-4 left-4 text-white p-2 bg-black/50 rounded">
-          <p>Health: {playerHealth}</p>
-        </div>
       )}
     </>
   );

@@ -17,6 +17,20 @@ interface GameHUDProps {
 
 const GameHUD = ({ playerInfo, otherPlayers, timeRemaining, onPause }: GameHUDProps) => {
   const [showControls, setShowControls] = useState(false);
+
+  useEffect(() => {
+    console.log("Health updated to:", playerInfo.health);
+  }, [playerInfo.health]);
+
+  // Add debugging to verify health updates
+  useEffect(() => {
+    console.log("GameHUD health updated:", playerInfo.health);
+  }, [playerInfo.health]);
+
+  // Add these console logs to verify updates
+  useEffect(() => {
+    console.log("GameHUD rendered with health:", playerInfo.health);
+  }, [playerInfo.health]);
   
   return (
     <div className="fixed inset-0 pointer-events-none z-30">
@@ -45,10 +59,17 @@ const GameHUD = ({ playerInfo, otherPlayers, timeRemaining, onPause }: GameHUDPr
           {playerInfo.name}
         </p>
         
-        <div className="health-bar">
+        {/* Make sure the health bar styling is correct */}
+        <div className="health-bar h-4 w-full bg-secondary relative overflow-hidden border border-disco-purple">
           <div 
-            className="health-bar-fill"
-            style={{ width: `${playerInfo.health}%` }}
+            className="health-bar-fill h-full absolute top-0 left-0"
+            style={{ 
+              width: `${playerInfo.health}%`,
+              backgroundColor: playerInfo.health < 30 ? '#ff3333' : 
+                               playerInfo.health < 70 ? '#ffcc00' : 
+                               '#33cc33',
+              transition: 'width 0.3s ease-out'
+            }}
           ></div>
         </div>
       </div>

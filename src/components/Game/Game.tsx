@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from 'react';
 import LoadingScreen from '../UI/LoadingScreen';
 import MainMenu from '../UI/MainMenu';
@@ -262,7 +261,18 @@ const Game = () => {
         {/* Three.js canvas will be inserted here */}
         {/* Always render the Scene when we're not in loading state - 
             this ensures the player is initialized properly */}
-        {gameState !== 'loading' && <Scene containerRef={containerRef} />}
+        {gameState !== 'loading' && (
+          <Scene 
+            containerRef={containerRef} 
+            onUpdatePlayerInfo={(info) => {
+              setPlayerInfo(prev => ({
+                ...prev,
+                health: info.health !== undefined ? info.health : prev.health,
+                score: info.score !== undefined ? info.score : prev.score
+              }));
+            }}
+          />
+        )}
       </div>
       {renderGameState()}
     </div>

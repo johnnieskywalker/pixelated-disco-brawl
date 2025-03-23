@@ -17,6 +17,9 @@ interface ControlsProps {
     left: boolean;
     right: boolean;
   }>;
+  damageRadius?: number;
+  npcs?: Array<{ api: { id: string; body: CANNON.Body; mesh: THREE.Object3D } }>;
+  onDamageNPC?: (id: string, amount: number) => void;
 }
 
 const Controls = ({ 
@@ -27,7 +30,10 @@ const Controls = ({
   onPunch,
   onKick,
   onPickup,
-  onThrow
+  onThrow,
+  damageRadius = 2.5, 
+  npcs = [],
+  onDamageNPC = () => {}
 }: ControlsProps) => {
   const moveForward = useRef(false);
   const moveBackward = useRef(false);
@@ -41,6 +47,44 @@ const Controls = ({
   const mousePosition = useRef({ x: 0, y: 0 });
   const isPointerLocked = useRef(false);
   const isWalking = useRef(false);
+
+  const checkAttackHits = (attackType: 'punch' | 'kick') => {
+    const playerPosition = new THREE.Vector3(
+      cannonBody.position.x,
+      cannonBody.position.y,
+      cannonBody.position.z
+    );
+    
+    // Get player's forward direction
+    const playerDirection = new THREE.Vector3(0, 0, -1);
+    playerDirection.applyQuaternion(playerMesh.quaternion);
+    
+    // Check each NPC
+    npcs.forEach(npc => {
+      if (!npc.api || !npc.api.mesh) return;
+      
+      const npcPosition = new THREE.Vector3(
+        npc.api.body.position.x,
+        npc.api.body.position.y,
+        npc.api.body.position.z
+      );
+      
+      // Calculate distance
+      const distance = playerPosition.distanceTo(npcPosition);
+      
+      // Check if NPC is in range and in front of player
+      if (distance < damageRadius) {
+        const toNPC = new THREE.Vector3().subVectors(npcPosition, playerPosition).normalize();
+        const dotProduct = toNPC.dot(playerDirection);
+        
+        // NPC is in front of player (within ~120 degree arc)
+        if (dotProduct > 0.5) {
+          const damageAmount = attackType === 'punch' ? 10 : 20;
+          onDamageNPC(npc.api.id, damageAmount);
+        }
+      }
+    });
+  };
 
   useEffect(() => {
     console.log("Controls component mounted");
@@ -70,9 +114,11 @@ const Controls = ({
           break;
         case 'KeyZ':
           onPunch();
+          checkAttackHits('punch');
           break;
         case 'KeyX':
           onKick();
+          checkAttackHits('kick');
           break;
         case 'KeyE':
           onPickup();

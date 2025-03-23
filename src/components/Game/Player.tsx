@@ -100,7 +100,7 @@ const Player = ({
   // Walking animation state
   let isWalking = false;
   let walkAnimationFrame = 0;
-  let legDirection = 1; // 1 for forward, -1 for backward
+  // let legDirection = 1; // 1 for forward, -1 for backward
   const walkSpeed = 0.3;
   const walkAngleMax = Math.PI / 3; // Slightly increased angle for more noticeable movement
   
@@ -259,7 +259,41 @@ const Player = ({
   // Health and score
   let health = 100;
   let score = 0;
-  
+
+  const setHealth = (newHealth: number) => {
+    // Visual feedback when damaged
+    if (newHealth < health) {
+      // Show damage on all character body parts
+      characterMesh.children.forEach((part) => {
+        if (part instanceof THREE.Mesh && part.material) {
+          // Flash red when damaged
+          const originalMaterial = part.material as THREE.MeshBasicMaterial;
+          const originalColor = originalMaterial.color.clone();
+          
+          originalMaterial.color.set(0xff0000);
+          
+          setTimeout(() => {
+            originalMaterial.color.copy(originalColor);
+          }, 200);
+        }
+      });
+      
+      // Add camera shake for bigger damage
+      if (health - newHealth > 10) {
+        // This would need to be connected to your camera system
+        // For example, you could emit an event for camera shake
+        console.log("Heavy damage taken! Camera shake would occur here.");
+      }
+      
+      // Play damage sound
+      console.log("Ouch! Player took damage");
+    }
+    
+    // Update health value
+    health = newHealth;
+    console.log(`Player health updated to ${health}`);
+  };
+
   return {
     mesh: characterMesh,
     body: characterBody,
@@ -267,7 +301,7 @@ const Player = ({
     punch,
     kick,
     health,
-    setHealth: (value: number) => { health = value; },
+    setHealth,  // This is important for damage to work
     score,
     setScore: (value: number) => { score = value; },
     name: playerName || PLAYER_NAMES[Math.floor(Math.random() * PLAYER_NAMES.length)],
