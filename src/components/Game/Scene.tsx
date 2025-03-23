@@ -7,6 +7,7 @@ import Environment from './Environment';
 import Player from './Player';
 import Controls from './Controls';
 import Multiplayer from './Multiplayer';
+import NPCManager from './NPCManager';
 
 interface SceneProps {
   containerRef: React.RefObject<HTMLDivElement>;
@@ -25,6 +26,7 @@ const Scene = ({ containerRef }: SceneProps) => {
   
   const [gameReady, setGameReady] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
+  const [playerHealth, setPlayerHealth] = useState(100);
   
   // Movement state tracking
   const movementRef = useRef({
@@ -187,6 +189,16 @@ const Scene = ({ containerRef }: SceneProps) => {
   const handleThrow = () => {
     console.log("Throw action");
   };
+
+  const handleDamagePlayer = (amount: number) => {
+    setPlayerHealth(prev => Math.max(0, prev - amount));
+    if (playerAPI) {
+      playerAPI.setHealth(Math.max(0, playerHealth - amount));
+    }
+    
+    // Optional: Play hit sound or visual effect
+    console.log(`Player took ${amount} damage! Health: ${playerHealth - amount}`);
+  };
   
   return (
     <>
@@ -216,6 +228,26 @@ const Scene = ({ containerRef }: SceneProps) => {
           scene={sceneRef.current.scene}
           physicsWorld={physicsWorldRef.current}
         />
+      )}
+
+      {gameReady && sceneRef.current && physicsWorldRef.current && playerAPI && (
+        <NPCManager 
+          scene={sceneRef.current.scene}
+          physicsWorld={physicsWorldRef.current}
+          playerPosition={new THREE.Vector3(
+            playerAPI.body.position.x,
+            playerAPI.body.position.y,
+            playerAPI.body.position.z
+          )}
+          playerHealth={playerHealth}
+          onDamagePlayer={handleDamagePlayer}
+        />
+      )}
+
+      {gameReady && playerReady && (
+        <div className="fixed top-4 left-4 text-white p-2 bg-black/50 rounded">
+          <p>Health: {playerHealth}</p>
+        </div>
       )}
     </>
   );
