@@ -98,6 +98,52 @@ const Player = ({
     characterMesh.add(sprite);
   }
   
+  // Walking animation state
+  let isWalking = false;
+  let walkAnimationFrame = 0;
+  let legDirection = 1; // 1 for forward, -1 for backward
+  const walkSpeed = 0.2; // Animation speed
+  const walkAngleMax = Math.PI / 4; // Maximum angle for leg rotation
+  
+  // Get leg references
+  const leftLeg = characterMesh.children[4] as THREE.Mesh;
+  const rightLeg = characterMesh.children[5] as THREE.Mesh;
+  const origLeftLegRotation = leftLeg.rotation.clone();
+  const origRightLegRotation = rightLeg.rotation.clone();
+  
+  // Set walking state function
+  const setWalking = (walking: boolean) => {
+    isWalking = walking;
+    // Reset legs to original position when stopping
+    if (!walking) {
+      leftLeg.rotation.copy(origLeftLegRotation);
+      rightLeg.rotation.copy(origRightLegRotation);
+    }
+  };
+  
+  // Store the setWalking function in userData for external access
+  characterMesh.userData = { setWalking };
+  
+  // Animation loop for walking
+  const animateWalking = () => {
+    if (isWalking) {
+      // Alternate legs when walking
+      walkAnimationFrame += walkSpeed;
+      
+      // Sinusoidal motion for a smooth walk cycle
+      const legAngle = Math.sin(walkAnimationFrame) * walkAngleMax;
+      
+      // Move legs in opposite directions
+      leftLeg.rotation.x = origLeftLegRotation.x + legAngle;
+      rightLeg.rotation.x = origRightLegRotation.x - legAngle;
+    }
+    
+    requestAnimationFrame(animateWalking);
+  };
+  
+  // Start animation loop
+  animateWalking();
+  
   // Update function to sync mesh with physics
   const updateMeshPosition = () => {
     characterMesh.position.set(

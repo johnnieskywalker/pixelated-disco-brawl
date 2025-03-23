@@ -166,6 +166,7 @@ const Scene = ({ containerRef }: SceneProps) => {
           <div className="fixed bottom-4 left-4 text-white p-4 bg-black/50 rounded">
             <p>Player ready! Use WASD to move.</p>
             <p>Space = Jump, Z = Punch, X = Kick</p>
+            <p>Move mouse to control camera</p>
           </div>
         </>
       )}
