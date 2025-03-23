@@ -1,4 +1,3 @@
-
 import * as CANNON from 'cannon-es';
 import * as THREE from 'three';
 
@@ -26,17 +25,19 @@ export const createPhysicsWorld = () => {
 
 // Helper to create a physics body for a character
 export const createCharacterBody = (position: CANNON.Vec3) => {
-  // Create compound body for character
+  // Raise the body position slightly to prevent floor intersection
+  const adjustedPosition = new CANNON.Vec3(position.x, position.y + 0.1, position.z);
+  
   const body = new CANNON.Body({
-    mass: 70, // 70 kg
-    position: position,
-    shape: new CANNON.Box(new CANNON.Vec3(0.5, 0.75, 0.3)), // Body
+    mass: 80, // 80 kg - typical human weight
+    position: adjustedPosition,
+    shape: new CANNON.Box(new CANNON.Vec3(0.5, 0.75, 0.3)), // Body dimensions
     material: new CANNON.Material({
-      friction: 0.5,
+      friction: 0.2, // Reduced friction for easier movement
       restitution: 0.3,
     }),
     fixedRotation: true, // Prevent character from rotating
-    linearDamping: 0.9, // Add some drag
+    linearDamping: 0.8, // Reduced damping for smoother movement
   });
   
   // Add jump capability

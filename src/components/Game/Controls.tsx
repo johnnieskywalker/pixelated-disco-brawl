@@ -177,23 +177,55 @@ const Controls = ({
         const rotatedX = direction.current.z * Math.sin(angle) + direction.current.x * Math.cos(angle);
         const rotatedZ = direction.current.z * Math.cos(angle) - direction.current.x * Math.sin(angle);
         
-        // Increase force to make movement 5x faster
-        const force = 7000; // Was 500 before
-        cannonBody.applyForce(
-          new CANNON.Vec3(rotatedX * force, 0, rotatedZ * force),
-          cannonBody.position
-        );
+        // Optimized speed for more natural movement
+        const speed = 15; // Increased from 12
         
-        console.log("Moving character. Direction:", { x: rotatedX, z: rotatedZ });
+        const currentVX = cannonBody.velocity.x;
+        const currentVZ = cannonBody.velocity.z;
+        const targetVX = rotatedX * speed;
+        const targetVZ = rotatedZ * speed;
         
-        // Fix animation by explicitly setting walking state
+        // More responsive acceleration (0.5 instead of 0.3)
+        cannonBody.velocity.x += (targetVX - currentVX) * 0.5;
+        cannonBody.velocity.z += (targetVZ - currentVZ) * 0.5;
+        
+        // Higher minimum velocity to easily overcome floor friction
+        const minSpeed = 2.0; // Doubled from 1.0
+        if (Math.abs(cannonBody.velocity.x) < minSpeed && direction.current.x !== 0) {
+          cannonBody.velocity.x = Math.sign(targetVX) * minSpeed;
+        }
+        if (Math.abs(cannonBody.velocity.z) < minSpeed && direction.current.z !== 0) {
+          cannonBody.velocity.z = Math.sign(targetVZ) * minSpeed;
+        }
+        
+        // Slightly lift the player when moving to prevent floor sticking
+        // This is a common trick in game development
+        const liftAmount = 0.05;
+        if (cannonBody.position.y < 1.2) { // Only if close to the ground
+          cannonBody.position.y += liftAmount;
+        }
+        
+        // Animation update
         if (playerMesh.userData && typeof playerMesh.userData.setWalking === 'function') {
           playerMesh.userData.setWalking(true);
           isWalking.current = true;
         }
-      } else if (playerMesh.userData && typeof playerMesh.userData.setWalking === 'function') {
-        playerMesh.userData.setWalking(false);
-        isWalking.current = false;
+      } else {
+        // Less aggressive deceleration (0.9 instead of 0.8)
+        cannonBody.velocity.x *= 0.9;
+        cannonBody.velocity.z *= 0.9;
+        
+        // Complete stop when velocity is very low
+        if (Math.abs(cannonBody.velocity.x) < 0.1) cannonBody.velocity.x = 0;
+        if (Math.abs(cannonBody.velocity.z) < 0.1) cannonBody.velocity.z = 0;
+        
+        if (playerMesh.userData && typeof playerMesh.userData.setWalking === 'function') {
+          // Only stop the walking animation when nearly stopped
+          if (Math.abs(cannonBody.velocity.x) < 0.5 && Math.abs(cannonBody.velocity.z) < 0.5) {
+            playerMesh.userData.setWalking(false);
+            isWalking.current = false;
+          }
+        }
       }
       
       const cameraOffset = new THREE.Vector3(0, 3, 8);

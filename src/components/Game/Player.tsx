@@ -101,7 +101,7 @@ const Player = ({
   let isWalking = false;
   let walkAnimationFrame = 0;
   let legDirection = 1; // 1 for forward, -1 for backward
-  const walkSpeed = 0.2; // Increased from 0.2
+  const walkSpeed = 0.3;
   const walkAngleMax = Math.PI / 3; // Slightly increased angle for more noticeable movement
   
   // Get leg references
