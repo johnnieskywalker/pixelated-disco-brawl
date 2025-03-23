@@ -17,7 +17,7 @@ const Scene = ({ containerRef }: SceneProps) => {
   const sceneRef = useRef<{
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
-    composer: EffectComposer;
+    renderer: THREE.WebGLRenderer;
     cleanUp: () => void;
   } | null>(null);
   
@@ -85,7 +85,7 @@ const Scene = ({ containerRef }: SceneProps) => {
       
       console.log("Creating player instance");
       
-      // Position player in front of camera
+      // Position player directly below the disco ball (which is at 0, 8, 0)
       const playerPosition = new THREE.Vector3(0, 2, 0);
       
       // Create the player
