@@ -1,9 +1,23 @@
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { createCharacterModel } from '@/utils/three';
 import { createCharacterBody } from '@/utils/physics';
+
+// Constants moved outside the component
+const PLAYER_COLORS = [
+  '#E91E63', // Pink
+  '#3F51B5', // Indigo
+  '#4CAF50', // Green
+  '#FF9800', // Orange
+  '#9C27B0', // Purple
+];
+
+const PLAYER_NAMES = [
+  'Seba', 'Mati', 'Żenia', 'Arek', 'Zbyszek',
+  'Waldek', 'Darek', 'Jurek', 'Mirek', 'Tadek',
+];
 
 interface PlayerProps {
   scene: THREE.Scene;
@@ -37,15 +51,14 @@ const Player = ({
   isLocalPlayer = false,
   onUpdate
 }: PlayerProps): PlayerAPI => {
-  // Create refs instead of using useState directly
+  // Create refs for the player state
+  const meshRef = useRef<THREE.Group | null>(null);
+  const bodyRef = useRef<CANNON.Body | null>(null);
+  const characterControllerRef = useRef<{ body: CANNON.Body; jump: () => void; isJumping: () => boolean } | null>(null);
   const healthRef = useRef(100);
   const scoreRef = useRef(0);
   const playerColorRef = useRef(color || PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)]);
   const nameRef = useRef(playerName || PLAYER_NAMES[Math.floor(Math.random() * PLAYER_NAMES.length)]);
-  
-  const meshRef = useRef<THREE.Group | null>(null);
-  const bodyRef = useRef<CANNON.Body | null>(null);
-  const characterControllerRef = useRef<{ body: CANNON.Body; jump: () => void; isJumping: () => boolean } | null>(null);
   
   const animationState = useRef({
     isWalking: false,
@@ -58,11 +71,13 @@ const Player = ({
   useEffect(() => {
     console.log("Creating player at position:", position);
     
+    // Create character mesh
     const characterMesh = createCharacterModel(playerColorRef.current);
     meshRef.current = characterMesh;
     characterMesh.position.copy(position);
     scene.add(characterMesh);
     
+    // Create physics body
     const cannonPosition = new CANNON.Vec3(position.x, position.y, position.z);
     const characterController = createCharacterBody(cannonPosition);
     characterControllerRef.current = characterController;
@@ -72,6 +87,7 @@ const Player = ({
     if (isLocalPlayer) {
       console.log("Local player created");
     } else {
+      // Create nametag for non-local players
       const canvas = document.createElement('canvas');
       canvas.width = 256;
       canvas.height = 64;
@@ -254,19 +270,5 @@ const Player = ({
     name: nameRef.current,
   };
 };
-
-// Constants moved outside the component
-const PLAYER_COLORS = [
-  '#E91E63', // Pink
-  '#3F51B5', // Indigo
-  '#4CAF50', // Green
-  '#FF9800', // Orange
-  '#9C27B0', // Purple
-];
-
-const PLAYER_NAMES = [
-  'Seba', 'Mati', 'Żenia', 'Arek', 'Zbyszek',
-  'Waldek', 'Darek', 'Jurek', 'Mirek', 'Tadek',
-];
 
 export default Player;

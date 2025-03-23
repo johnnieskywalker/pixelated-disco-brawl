@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
@@ -21,7 +20,6 @@ interface PlayerInfo {
   score: number;
 }
 
-// Add these interfaces at the top of the file with your other interfaces
 interface Vector3Data {
   x: number;
   y: number;
@@ -51,9 +49,7 @@ interface PlayerState {
   score: number;
 }
 
-
 const Scene = ({ containerRef }: SceneProps) => {
-  // Game state refs
   const sceneRef = useRef<{
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
@@ -62,7 +58,7 @@ const Scene = ({ containerRef }: SceneProps) => {
   } | null>(null);
   
   const physicsWorldRef = useRef<CANNON.World | null>(null);
-  const playerRef = useRef<ReturnType<typeof Player> | null>(null);
+  const [playerAPI, setPlayerAPI] = useState<ReturnType<typeof Player> | null>(null);
   const otherPlayersRef = useRef<Record<string, ReturnType<typeof Player>>>({});
   
   const playerInfoRef = useRef<PlayerInfo>({
@@ -72,25 +68,20 @@ const Scene = ({ containerRef }: SceneProps) => {
     score: 0,
   });
   
-  // Component state
   const [gameReady, setGameReady] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
   
-  // Initialize scene
   useEffect(() => {
     if (!containerRef.current) return;
     
     try {
       console.log("Initializing Three.js scene");
-      // Create Three.js scene
       const threeSetup = createThreeJsScene(containerRef.current);
       sceneRef.current = threeSetup;
       
-      // Create physics world
       const physicsWorld = createPhysicsWorld();
       physicsWorldRef.current = physicsWorld;
       
-      // Physics update loop
       const timeStep = 1 / 60;
       const physicsLoop = () => {
         if (physicsWorld) {
@@ -101,13 +92,11 @@ const Scene = ({ containerRef }: SceneProps) => {
       
       const frameId = requestAnimationFrame(physicsLoop);
       
-      // Set ready state
       setGameReady(true);
       console.log("Scene initialized successfully");
       
       return () => {
         console.log("Cleaning up Three.js scene");
-        // Clean up
         cancelAnimationFrame(frameId);
         if (sceneRef.current) {
           sceneRef.current.cleanUp();
@@ -119,9 +108,11 @@ const Scene = ({ containerRef }: SceneProps) => {
     }
   }, [containerRef]);
   
-  // Initialize player and controls when scene is ready
   useEffect(() => {
-    if (!gameReady || !sceneRef.current || !physicsWorldRef.current) return;
+    if (!gameReady || !sceneRef.current || !physicsWorldRef.current) {
+      console.log("Not ready to create player yet");
+      return;
+    }
     
     try {
       const { scene, camera } = sceneRef.current;
@@ -129,27 +120,33 @@ const Scene = ({ containerRef }: SceneProps) => {
       
       console.log("Creating player instance");
       
-      // Create player
-      const playerObj = Player({
+      const playerObject = Player({
         scene,
         physicsWorld,
-        position: new THREE.Vector3(0, 5, 0), // Raised position so player drops onto the ground
+        position: new THREE.Vector3(0, 5, 0),
         isLocalPlayer: true,
       });
       
-      console.log("Player created:", playerObj);
-      playerRef.current = playerObj;
+      console.log("Player created:", playerObject);
+      setPlayerAPI(playerObject);
       
-      // Store player info
-      if (playerObj) {
+      if (playerObject) {
         playerInfoRef.current = {
           id: 'local-player',
-          name: playerObj.name,
-          health: playerObj.health,
-          score: playerObj.score,
+          name: playerObject.name,
+          health: playerObject.health,
+          score: playerObject.score,
         };
         
-        // Set player as ready
+        if (camera && playerObject.mesh) {
+          camera.position.set(
+            playerObject.mesh.position.x, 
+            playerObject.mesh.position.y + 5, 
+            playerObject.mesh.position.z + 10
+          );
+          camera.lookAt(playerObject.mesh.position);
+        }
+        
         setPlayerReady(true);
         console.log("Player initialized successfully");
       }
@@ -158,83 +155,98 @@ const Scene = ({ containerRef }: SceneProps) => {
     }
   }, [gameReady]);
   
-  // Debug player status periodically
   useEffect(() => {
-    if (!playerReady || !playerRef.current) return;
+    if (!playerReady || !playerAPI || !playerAPI.mesh || !sceneRef.current) return;
+    
+    const { camera } = sceneRef.current;
+    
+    const updateCamera = () => {
+      if (playerAPI && playerAPI.mesh && camera) {
+        const offset = new THREE.Vector3(0, 5, 10);
+        const targetPosition = new THREE.Vector3().copy(playerAPI.mesh.position).add(offset);
+        camera.position.lerp(targetPosition, 0.1);
+        camera.lookAt(playerAPI.mesh.position);
+      }
+      
+      requestAnimationFrame(updateCamera);
+    };
+    
+    const frameId = requestAnimationFrame(updateCamera);
+    
+    return () => cancelAnimationFrame(frameId);
+  }, [playerReady, playerAPI]);
+  
+  useEffect(() => {
+    if (!playerReady || !playerAPI) return;
     
     const debugInterval = setInterval(() => {
-      if (playerRef.current) {
+      if (playerAPI) {
         console.log("Player state:", {
-          mesh: playerRef.current.mesh ? "Exists" : "Missing",
-          body: playerRef.current.body ? "Exists" : "Missing",
-          position: playerRef.current.mesh ? playerRef.current.mesh.position : "N/A",
-          health: playerRef.current.health,
-          score: playerRef.current.score
+          mesh: playerAPI.mesh ? "Exists" : "Missing",
+          body: playerAPI.body ? "Exists" : "Missing",
+          position: playerAPI.mesh ? playerAPI.mesh.position : "N/A",
+          health: playerAPI.health,
+          score: playerAPI.score
         });
       }
-    }, 5000); // Log every 5 seconds
+    }, 5000);
     
     return () => clearInterval(debugInterval);
-  }, [playerReady]);
-  
-  // Handle player actions
+  }, [playerReady, playerAPI]);
   
   const handleJump = () => {
-    if (playerRef.current && playerRef.current.jump) {
+    if (playerAPI && playerAPI.jump) {
       console.log("Jump action triggered");
-      playerRef.current.jump();
+      playerAPI.jump();
     } else {
-      console.warn("Jump called but player reference or jump method is missing");
+      console.warn("Jump called but player reference or jump method is missing", playerAPI);
     }
   };
   
   const handlePunch = () => {
-    if (playerRef.current && playerRef.current.punch) {
+    if (playerAPI && playerAPI.punch) {
       console.log("Punch action triggered");
-      playerRef.current.punch();
+      playerAPI.punch();
     } else {
-      console.warn("Punch called but player reference or punch method is missing");
+      console.warn("Punch called but player reference or punch method is missing", playerAPI);
     }
   };
   
   const handleKick = () => {
-    if (playerRef.current && playerRef.current.kick) {
+    if (playerAPI && playerAPI.kick) {
       console.log("Kick action triggered");
-      playerRef.current.kick();
+      playerAPI.kick();
     } else {
-      console.warn("Kick called but player reference or kick method is missing");
+      console.warn("Kick called but player reference or kick method is missing", playerAPI);
     }
   };
   
   const handlePickup = () => {
     console.log("Pickup action");
-    // Implement pickup logic
   };
   
   const handleThrow = () => {
     console.log("Throw action");
-    // Implement throw logic
   };
   
-  // Render controls when player is ready
   const renderControls = () => {
-    if (!gameReady || !sceneRef.current || !playerRef.current || !playerRef.current.mesh || !playerRef.current.body) {
+    if (!gameReady || !sceneRef.current || !playerAPI || !playerAPI.mesh || !playerAPI.body) {
       console.warn("Controls not rendering: not all conditions met", {
         gameReady,
         sceneExists: !!sceneRef.current,
-        playerExists: !!playerRef.current,
-        meshExists: playerRef.current && !!playerRef.current.mesh,
-        bodyExists: playerRef.current && !!playerRef.current.body
+        playerExists: !!playerAPI,
+        meshExists: playerAPI && !!playerAPI.mesh,
+        bodyExists: playerAPI && !!playerAPI.body
       });
       return null;
     }
     
-    console.log("Rendering controls");
+    console.log("Rendering controls with player", playerAPI);
     return (
       <Controls 
         camera={sceneRef.current.camera}
-        cannonBody={playerRef.current.body}
-        playerMesh={playerRef.current.mesh}
+        cannonBody={playerAPI.body}
+        playerMesh={playerAPI.mesh}
         onJump={handleJump}
         onPunch={handlePunch}
         onKick={handleKick}
@@ -244,7 +256,6 @@ const Scene = ({ containerRef }: SceneProps) => {
     );
   };
   
-  // Render environment when scene is ready
   const renderEnvironment = () => {
     if (!gameReady || !sceneRef.current || !physicsWorldRef.current) {
       return null;
@@ -258,7 +269,6 @@ const Scene = ({ containerRef }: SceneProps) => {
     );
   };
   
-  // Multiplayer handling
   const handleConnect = (id: string) => {
     console.log(`Connected to multiplayer with ID: ${id}`);
     playerInfoRef.current.id = id;
@@ -275,9 +285,7 @@ const Scene = ({ containerRef }: SceneProps) => {
   const handlePlayerLeave = (id: string) => {
     console.log(`Player left: ${id}`);
     
-    // Remove player from scene
     if (otherPlayersRef.current[id]) {
-      // Cleanup would be handled by the Player component unmount
       delete otherPlayersRef.current[id];
     }
   };
@@ -288,14 +296,12 @@ const Scene = ({ containerRef }: SceneProps) => {
     const { scene } = sceneRef.current;
     const physicsWorld = physicsWorldRef.current;
     
-    // Update existing players and add new ones
     Object.keys(players).forEach(id => {
-      if (id === playerInfoRef.current.id) return; // Skip local player
+      if (id === playerInfoRef.current.id) return;
       
       const playerData = players[id];
       
       if (!otherPlayersRef.current[id]) {
-        // Create new player
         const otherPlayer = Player({
           scene,
           physicsWorld,
@@ -313,11 +319,9 @@ const Scene = ({ containerRef }: SceneProps) => {
           otherPlayersRef.current[id] = otherPlayer;
         }
       } else {
-        // Update existing player
         const player = otherPlayersRef.current[id];
         
         if (player.body) {
-          // Update physics body position directly
           player.body.position.set(
             playerData.position.x,
             playerData.position.y,
@@ -332,7 +336,6 @@ const Scene = ({ containerRef }: SceneProps) => {
           );
         }
         
-        // Update health and score
         if (playerData.health !== undefined) {
           player.setHealth(playerData.health);
         }
@@ -343,21 +346,18 @@ const Scene = ({ containerRef }: SceneProps) => {
       }
     });
     
-    // Remove players not in the update
     Object.keys(otherPlayersRef.current).forEach(id => {
       if (!players[id]) {
-        // Player cleanup would be handled by component unmount
         delete otherPlayersRef.current[id];
       }
     });
   };
   
   const handleSendPlayerState = (callback: (state: PlayerState) => void) => {
-    if (!playerRef.current || !playerRef.current.mesh) return;
+    if (!playerAPI || !playerAPI.mesh) return;
     
-    // Set up interval to send player state
     const interval = setInterval(() => {
-      const mesh = playerRef.current?.mesh;
+      const mesh = playerAPI?.mesh;
       
       if (mesh) {
         callback({
@@ -372,16 +372,15 @@ const Scene = ({ containerRef }: SceneProps) => {
             z: mesh.quaternion.z,
             w: mesh.quaternion.w,
           },
-          health: playerRef.current?.health || 100,
-          score: playerRef.current?.score || 0,
+          health: playerAPI?.health || 100,
+          score: playerAPI?.score || 0,
         });
       }
-    }, 100); // 10 times per second
+    }, 100);
     
     return () => clearInterval(interval);
   };
   
-  // Debug information
   useEffect(() => {
     if (playerReady) {
       console.log("Player is ready. Controls should be active.");
@@ -391,7 +390,12 @@ const Scene = ({ containerRef }: SceneProps) => {
   return (
     <>
       {renderControls()}
-      {renderEnvironment()}
+      {gameReady && sceneRef.current && physicsWorldRef.current && (
+        <Environment 
+          scene={sceneRef.current.scene}
+          physicsWorld={physicsWorldRef.current}
+        />
+      )}
       <Multiplayer 
         onConnect={handleConnect}
         onDisconnect={handleDisconnect}

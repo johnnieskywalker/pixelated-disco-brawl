@@ -81,6 +81,7 @@ const Game = () => {
   
   // Handle game state transitions
   const handleStartGame = () => {
+    console.log("Starting game - switching to playing state");
     setGameState('playing');
     
     // Play background music
@@ -259,6 +260,8 @@ const Game = () => {
       <div className="scanline"></div>
       <div ref={containerRef} className="absolute inset-0">
         {/* Three.js canvas will be inserted here */}
+        {/* Always render the Scene when we're not in loading state - 
+            this ensures the player is initialized properly */}
         {gameState !== 'loading' && <Scene containerRef={containerRef} />}
       </div>
       {renderGameState()}
