@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
@@ -26,6 +25,14 @@ const Scene = ({ containerRef }: SceneProps) => {
   
   const [gameReady, setGameReady] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
+  
+  // Movement state tracking
+  const movementRef = useRef({
+    forward: false,
+    backward: false,
+    left: false,
+    right: false
+  });
   
   // Initialize Three.js scene and physics world
   useEffect(() => {
@@ -117,6 +124,39 @@ const Scene = ({ containerRef }: SceneProps) => {
       console.error("Error initializing player:", error);
     }
   }, [gameReady]);
+  
+  // Comment out or remove this useEffect that's handling movement
+  /*
+  useEffect(() => {
+    if (!playerReady || !playerAPI) return;
+    
+    // Movement handling
+    const movePlayerPhysics = () => {
+      // Calculate movement direction
+      const movement = new CANNON.Vec3(0, 0, 0);
+      
+      if (movementRef.current.forward) movement.z -= moveSpeed;
+      if (movementRef.current.backward) movement.z += moveSpeed;
+      if (movementRef.current.left) movement.x -= moveSpeed;
+      if (movementRef.current.right) movement.x += moveSpeed;
+      
+      // If there's movement, apply it to the physics body
+      if (movement.x !== 0 || movement.z !== 0) {
+        // ... movement logic ...
+      } else {
+        // ... stop movement logic ...
+      }
+      
+      requestAnimationFrame(movePlayerPhysics);
+    };
+    
+    const movementLoop = requestAnimationFrame(movePlayerPhysics);
+    
+    return () => {
+      cancelAnimationFrame(movementLoop);
+    };
+  }, [playerReady, playerAPI]);
+  */
   
   // Player action handlers
   const handleJump = () => {

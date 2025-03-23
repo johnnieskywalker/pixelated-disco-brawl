@@ -11,6 +11,12 @@ interface ControlsProps {
   onKick: () => void;
   onPickup: () => void;
   onThrow: () => void;
+  movementRef?: React.MutableRefObject<{
+    forward: boolean;
+    backward: boolean;
+    left: boolean;
+    right: boolean;
+  }>;
 }
 
 const Controls = ({ 
@@ -35,7 +41,7 @@ const Controls = ({
   const mousePosition = useRef({ x: 0, y: 0 });
   const isPointerLocked = useRef(false);
   const isWalking = useRef(false);
-  
+
   useEffect(() => {
     console.log("Controls component mounted");
     
@@ -157,7 +163,7 @@ const Controls = ({
       }
     };
   }, [camera, onJump, onKick, onPickup, onPunch, onThrow, playerMesh]);
-  
+
   useEffect(() => {
     console.log("Controls movement effect started");
     
@@ -171,20 +177,23 @@ const Controls = ({
         const rotatedX = direction.current.z * Math.sin(angle) + direction.current.x * Math.cos(angle);
         const rotatedZ = direction.current.z * Math.cos(angle) - direction.current.x * Math.sin(angle);
         
-        const force = 500;
+        // Increase force to make movement 5x faster
+        const force = 7000; // Was 500 before
         cannonBody.applyForce(
           new CANNON.Vec3(rotatedX * force, 0, rotatedZ * force),
           cannonBody.position
         );
         
         console.log("Moving character. Direction:", { x: rotatedX, z: rotatedZ });
-        console.log("Player position:", cannonBody.position);
         
+        // Fix animation by explicitly setting walking state
         if (playerMesh.userData && typeof playerMesh.userData.setWalking === 'function') {
           playerMesh.userData.setWalking(true);
+          isWalking.current = true;
         }
       } else if (playerMesh.userData && typeof playerMesh.userData.setWalking === 'function') {
         playerMesh.userData.setWalking(false);
+        isWalking.current = false;
       }
       
       const cameraOffset = new THREE.Vector3(0, 3, 8);

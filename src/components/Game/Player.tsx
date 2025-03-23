@@ -1,4 +1,3 @@
-
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { createCharacterModel } from '@/utils/three';
@@ -102,8 +101,8 @@ const Player = ({
   let isWalking = false;
   let walkAnimationFrame = 0;
   let legDirection = 1; // 1 for forward, -1 for backward
-  const walkSpeed = 0.2; // Animation speed
-  const walkAngleMax = Math.PI / 4; // Maximum angle for leg rotation
+  const walkSpeed = 0.2; // Increased from 0.2
+  const walkAngleMax = Math.PI / 3; // Slightly increased angle for more noticeable movement
   
   // Get leg references
   const leftLeg = characterMesh.children[4] as THREE.Mesh;
