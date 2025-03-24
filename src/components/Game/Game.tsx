@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from 'react';
 import LoadingScreen from '../UI/LoadingScreen';
 import MainMenu from '../UI/MainMenu';
@@ -83,6 +84,17 @@ const Game = () => {
     console.log("Starting game - switching to playing state");
     setGameState('playing');
     
+    // Reset player info when starting a new game
+    setPlayerInfo({
+      id: 'player-1',
+      name: 'Player',
+      health: 100,
+      score: 0,
+    });
+    
+    // Reset timer
+    setTimeRemaining(300);
+    
     // Play background music
     if (backgroundMusic.current) {
       backgroundMusic.current.src = 'https://freemusicarchive.org/track/polish-girl/download/';
@@ -126,6 +138,12 @@ const Game = () => {
     } else {
       setGameState('menu');
     }
+  };
+  
+  // Handle restart game after game over
+  const handleRestartGame = () => {
+    console.log("Restarting game");
+    handleStartGame();
   };
   
   // Render the game state
@@ -238,16 +256,7 @@ const Game = () => {
         );
         
       case 'playing':
-        return (
-          <>
-            <GameHUD 
-              playerInfo={playerInfo}
-              otherPlayers={otherPlayers}
-              timeRemaining={timeRemaining}
-              onPause={handlePauseGame}
-            />
-          </>
-        );
+        return null; // GameHUD is now rendered separately
         
       default:
         return null;
@@ -275,6 +284,17 @@ const Game = () => {
         )}
       </div>
       {renderGameState()}
+
+      {/* Show GameHUD only when playing */}
+      {gameState === 'playing' && (
+        <GameHUD 
+          playerInfo={playerInfo}
+          otherPlayers={otherPlayers}
+          timeRemaining={timeRemaining}
+          onPause={handlePauseGame}
+          onRestart={handleRestartGame}
+        />
+      )}
     </div>
   );
 };
