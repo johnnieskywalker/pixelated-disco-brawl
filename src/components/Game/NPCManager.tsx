@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
@@ -41,6 +42,7 @@ interface NPCManagerProps {
   onDamagePlayer: (amount: number) => void;
   onScoreUpdate?: (points: number) => void;
   onRegisterNPCs?: (npcs: Array<{ api: { id: string; body: CANNON.Body; mesh: THREE.Object3D } }>) => void;
+  onRegisterDamageNPC?: (damageNpcFn: (id: string, damage: number) => void) => void;
 }
 
 const NPCManager = ({ 
@@ -50,7 +52,8 @@ const NPCManager = ({
   playerHealth, 
   onDamagePlayer,
   onScoreUpdate,
-  onRegisterNPCs
+  onRegisterNPCs,
+  onRegisterDamageNPC
 }: NPCManagerProps) => {
   const npcs = useRef<Array<{
     api: {
@@ -157,13 +160,18 @@ const NPCManager = ({
     }
   };
 
+  // Register the damage NPC function
   useEffect(() => {
+    if (onRegisterDamageNPC) {
+      onRegisterDamageNPC(handleNPCDamage);
+    }
+    
     (window as any).damageNPC = handleNPCDamage;
     
     return () => {
       delete (window as any).damageNPC;
     };
-  }, []);
+  }, [onRegisterDamageNPC]);
 
   useEffect(() => {
     const spawnNPC = () => {
@@ -407,9 +415,10 @@ const NPCManager = ({
     return () => {
       cancelAnimationFrame(animationId);
     };
-  }, [playerPosition, playerHealth, onDamagePlayer, isSpawning]);
+  }, [playerPosition, playerHealth, onDamagePlayer, isSpawning, scene]);
   
-  return { damageNPC: handleNPCDamage };
+  // Return null instead of an object
+  return null;
 };
 
 export default NPCManager;

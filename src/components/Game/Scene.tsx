@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
@@ -34,6 +35,7 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
   const [playerName, setPlayerName] = useState('Player');
   const [gameTime, setGameTime] = useState(0);
   const [gameOver, setGameOver] = useState(false);
+  const [damageNpcFunction, setDamageNpcFunction] = useState<((id: string, damage: number) => void) | null>(null);
   
   // Movement state tracking
   const movementRef = useRef({
@@ -243,6 +245,24 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
     });
   };
 
+  // Handle the damageNPC registration
+  const handleRegisterDamageNPC = (damageNpcFn: (id: string, damage: number) => void) => {
+    console.log("Registering damageNPC function");
+    setDamageNpcFunction(() => damageNpcFn);
+  };
+
+  // Handle score updates
+  const handleScoreUpdate = (points: number) => {
+    console.log(`Adding ${points} to player score`);
+    setPlayerScore(prevScore => {
+      const newScore = prevScore + points;
+      if (onUpdatePlayerInfo) {
+        onUpdatePlayerInfo({ score: newScore });
+      }
+      return newScore;
+    });
+  };
+
   return (
     <>
       {gameReady && playerReady && playerAPI && sceneRef.current && (
@@ -258,9 +278,18 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
             onThrow={handleThrow}
             npcs={npcsRef.current.map(npc => ({ api: { id: npc.uuid, body: new CANNON.Body(), mesh: npc } })) || []}  // Add this line to pass NPCs to Controls
             onDamageNPC={(id, amount) => {
-              // Handle NPC damage and score
-              console.log(`NPC ${id} damaged by ${amount}`);
-              setPlayerScore(prev => prev + amount);
+              // Handle NPC damage through the damageNPC function
+              if (damageNpcFunction) {
+                damageNpcFunction(id, amount);
+                console.log(`NPC ${id} damaged by ${amount}`);
+                setPlayerScore(prev => {
+                  const newScore = prev + amount;
+                  if (onUpdatePlayerInfo) {
+                    onUpdatePlayerInfo({ score: newScore });
+                  }
+                  return newScore;
+                });
+              }
             }}
           />
           
@@ -286,6 +315,8 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
           playerPosition={playerPosition}
           playerHealth={playerHealth}
           onDamagePlayer={handleDamagePlayer}
+          onScoreUpdate={handleScoreUpdate}
+          onRegisterDamageNPC={handleRegisterDamageNPC}
         />
       )}
     </>

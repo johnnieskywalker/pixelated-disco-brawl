@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import io, { Socket } from 'socket.io-client';
@@ -21,7 +22,7 @@ interface MultiplayerProps {
   onPlayerUpdate?: (players: Record<string, PlayerState>) => void;
   onPlayerHit?: (id: string, damage: number) => void;
   onSendPlayerState?: (callback: (state: Partial<PlayerState>) => void) => void;
-  onPlayerDamageNPC?: (id: string, damage: number) => void;
+  onPlayerDamageNPC?: (callback: (id: string, damage: number) => void) => void;
 }
 
 // This is a simplified multiplayer component for the initial implementation
