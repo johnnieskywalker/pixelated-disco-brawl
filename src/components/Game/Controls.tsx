@@ -81,6 +81,26 @@ const Controls = ({
         if (dotProduct > 0.5) {
           const damageAmount = attackType === 'punch' ? 10 : 20;
           onDamageNPC(npc.api.id, damageAmount);
+          
+          // Create hit effect
+          const scene = playerMesh.parent;
+          if (scene) {
+            const hitEffect = new THREE.Mesh(
+              new THREE.SphereGeometry(0.5, 8, 8),
+              new THREE.MeshBasicMaterial({ 
+                color: 0xff0000, 
+                transparent: true, 
+                opacity: 0.7 
+              })
+            );
+            hitEffect.position.copy(npcPosition);
+            scene.add(hitEffect);
+            
+            // Remove the hit effect after animation
+            setTimeout(() => {
+              scene.remove(hitEffect);
+            }, 200);
+          }
         }
       }
     });

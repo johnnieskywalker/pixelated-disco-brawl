@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { Skull } from 'lucide-react';
+import { Skull, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
@@ -83,17 +84,32 @@ const GameHUD = ({ playerInfo, otherPlayers, timeRemaining, onPause, onRestart }
         
         <ul className="space-y-2">
           {otherPlayers.map((player) => (
-            <li key={player.id} className="flex justify-between">
-              <span className="font-retro text-xs text-white truncate mr-2">
-                {player.name}
-              </span>
-              
-              <div className="w-24 h-2 bg-secondary overflow-hidden">
-                <div 
-                  className="h-full bg-disco-red"
-                  style={{ width: `${player.health}%` }}
-                ></div>
+            <li key={player.id} className="flex justify-between items-center">
+              <div className="flex-1 mr-2">
+                <div className="flex justify-between mb-1">
+                  <span className="font-retro text-xs text-white truncate mr-2">
+                    {player.name}
+                  </span>
+                  <span className="font-retro text-xs text-disco-yellow">
+                    {Math.max(0, Math.floor(player.health))}%
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-secondary overflow-hidden">
+                  <div 
+                    className="h-full"
+                    style={{ 
+                      width: `${Math.max(0, player.health)}%`,
+                      backgroundColor: player.health < 30 ? '#ff3333' : 
+                                      player.health < 70 ? '#ffcc00' : 
+                                      '#33cc33',
+                      transition: 'width 0.2s ease-out'
+                    }}
+                  ></div>
+                </div>
               </div>
+              {player.health <= 0 && (
+                <Skull className="h-4 w-4 text-disco-red" />
+              )}
             </li>
           ))}
         </ul>

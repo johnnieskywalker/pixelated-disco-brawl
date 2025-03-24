@@ -21,6 +21,7 @@ interface MultiplayerProps {
   onPlayerUpdate?: (players: Record<string, PlayerState>) => void;
   onPlayerHit?: (id: string, damage: number) => void;
   onSendPlayerState?: (callback: (state: Partial<PlayerState>) => void) => void;
+  onPlayerDamageNPC?: (id: string, damage: number) => void;
 }
 
 // This is a simplified multiplayer component for the initial implementation
@@ -33,6 +34,7 @@ const Multiplayer = ({
   onPlayerUpdate,
   onPlayerHit,
   onSendPlayerState,
+  onPlayerDamageNPC,
 }: MultiplayerProps) => {
   const [connected, setConnected] = useState(false);
   const socket = useRef<Socket | null>(null);
@@ -95,6 +97,41 @@ const Multiplayer = ({
         // In a real implementation, this would send the state to the server
         console.log("Player state update:", state);
       });
+    }
+    
+    // Simulate handling player damage to NPCs
+    const handlePlayerDamageNPC = (npcId: string, damage: number) => {
+      console.log(`Player damaged NPC ${npcId} for ${damage} points`);
+      
+      if (playersRef.current[npcId]) {
+        // Reduce NPC health
+        playersRef.current[npcId].health = Math.max(0, playersRef.current[npcId].health - damage);
+        
+        // If NPC is defeated, increase player score
+        if (playersRef.current[npcId].health <= 0) {
+          console.log(`NPC ${npcId} defeated!`);
+          // Respawn NPC after 5 seconds
+          setTimeout(() => {
+            if (playersRef.current[npcId]) {
+              playersRef.current[npcId].health = 100;
+              // Notify about NPC respawn
+              if (onPlayerUpdate) {
+                onPlayerUpdate({...playersRef.current});
+              }
+            }
+          }, 5000);
+        }
+        
+        // Update all clients
+        if (onPlayerUpdate) {
+          onPlayerUpdate({...playersRef.current});
+        }
+      }
+    };
+    
+    // Register callback for NPC damage
+    if (onPlayerDamageNPC) {
+      onPlayerDamageNPC(handlePlayerDamageNPC);
     }
     
     // Simulate periodic updates from NPCs
@@ -178,7 +215,7 @@ const Multiplayer = ({
         onDisconnect();
       }
     };
-  }, [onConnect, onDisconnect, onPlayerJoin, onPlayerLeave, onPlayerUpdate, onSendPlayerState]);
+  }, [onConnect, onDisconnect, onPlayerJoin, onPlayerLeave, onPlayerUpdate, onSendPlayerState, onPlayerDamageNPC]);
   
   return null; // This component doesn't render anything
 };

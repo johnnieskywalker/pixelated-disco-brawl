@@ -39,47 +39,149 @@ interface NPCManagerProps {
   playerPosition: THREE.Vector3;
   playerHealth: number;
   onDamagePlayer: (amount: number) => void;
+  onScoreUpdate?: (points: number) => void;
+  onRegisterNPCs?: (npcs: Array<{ api: { id: string; body: CANNON.Body; mesh: THREE.Object3D } }>) => void;
 }
 
-const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamagePlayer }: NPCManagerProps) => {
+const NPCManager = ({ 
+  scene, 
+  physicsWorld, 
+  playerPosition, 
+  playerHealth, 
+  onDamagePlayer,
+  onScoreUpdate,
+  onRegisterNPCs
+}: NPCManagerProps) => {
   const npcs = useRef<Array<{
     api: {
       body: CANNON.Body;
       mesh: THREE.Mesh | THREE.Group;
       id: string;
+      health?: number;
       punch?: () => void;
       kick?: () => void;
     };
     lastAttackTime: number;
     isAttacking: boolean;
-    // Add these fields for individual NPC behavior
     moveSpeed: number;
     targetOffset: THREE.Vector3;
     lastDirectionChange: number;
   }>>([]);
   const [isSpawning, setIsSpawning] = useState(true);
 
-  // Spawn initial NPCs with randomization
+  useEffect(() => {
+    if (onRegisterNPCs) {
+      onRegisterNPCs(npcs.current);
+    }
+  }, [onRegisterNPCs]);
+
+  const handleNPCDamage = (id: string, damage: number) => {
+    const npc = npcs.current.find(n => n.api.id === id);
+    if (!npc) return;
+    
+    if (npc.api.health === undefined) {
+      npc.api.health = 100;
+    }
+    
+    npc.api.health = Math.max(0, npc.api.health - damage);
+    console.log(`NPC ${id} took ${damage} damage, health: ${npc.api.health}`);
+    
+    if (npc.api.mesh) {
+      const originalMaterials: THREE.Material[] = [];
+      
+      npc.api.mesh.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.material) {
+          if (Array.isArray(child.material)) {
+            originalMaterials.push(...child.material);
+            child.material = child.material.map(() => 
+              new THREE.MeshBasicMaterial({ color: 0xff0000 })
+            );
+          } else {
+            originalMaterials.push(child.material);
+            child.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+          }
+        }
+      });
+      
+      setTimeout(() => {
+        let materialIndex = 0;
+        npc.api.mesh.traverse((child) => {
+          if (child instanceof THREE.Mesh && child.material) {
+            if (Array.isArray(child.material)) {
+              child.material = child.material.map(() => {
+                return originalMaterials[materialIndex++];
+              });
+            } else {
+              child.material = originalMaterials[materialIndex++];
+            }
+          }
+        });
+      }, 100);
+    }
+    
+    if (npc.api.health <= 0) {
+      console.log(`NPC ${id} defeated!`);
+      
+      if (onScoreUpdate) {
+        const points = 100;
+        onScoreUpdate(points);
+      }
+      
+      const npcIndex = npcs.current.findIndex(n => n.api.id === id);
+      if (npcIndex !== -1) {
+        if (npc.api.mesh) {
+          npc.api.mesh.visible = false;
+        }
+        
+        setTimeout(() => {
+          if (npc.api.health !== undefined) {
+            npc.api.health = 100;
+          }
+          
+          const spawnPoint = NPC_CONFIG.spawnPoints[
+            Math.floor(Math.random() * NPC_CONFIG.spawnPoints.length)
+          ];
+          
+          if (npc.api.body) {
+            npc.api.body.position.set(spawnPoint.x, spawnPoint.y, spawnPoint.z);
+            npc.api.body.velocity.set(0, 0, 0);
+          }
+          
+          if (npc.api.mesh) {
+            npc.api.mesh.visible = true;
+          }
+          
+          console.log(`NPC ${id} respawned at ${spawnPoint.x}, ${spawnPoint.y}, ${spawnPoint.z}`);
+        }, 5000);
+      }
+    }
+  };
+
+  useEffect(() => {
+    (window as any).damageNPC = handleNPCDamage;
+    
+    return () => {
+      delete (window as any).damageNPC;
+    };
+  }, []);
+
   useEffect(() => {
     const spawnNPC = () => {
       if (npcs.current.length >= NPC_CONFIG.maxNPCs || !isSpawning) return;
       
-      // Pick a random spawn point
       const baseSpawnPoint = NPC_CONFIG.spawnPoints[
         Math.floor(Math.random() * NPC_CONFIG.spawnPoints.length)
       ];
       
-      // Add random variation to spawn position
       const variance = NPC_CONFIG.positionVariance;
       const randomOffset = new THREE.Vector3(
         (Math.random() - 0.5) * variance,
-        0,  // Don't vary y position
+        0,
         (Math.random() - 0.5) * variance
       );
       
       const spawnPoint = new THREE.Vector3().addVectors(baseSpawnPoint, randomOffset);
       
-      // Get random color and name
       const color = NPC_CONFIG.colors[Math.floor(Math.random() * NPC_CONFIG.colors.length)];
       const name = NPC_CONFIG.names[Math.floor(Math.random() * NPC_CONFIG.names.length)];
       
@@ -94,13 +196,13 @@ const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamag
           isLocalPlayer: false,
         }),
         id: name,
+        health: 100,
       };
       
       npcs.current.push({
         api: npcApi,
         lastAttackTime: 0,
         isAttacking: false,
-        // Add individual movement properties
         moveSpeed: NPC_CONFIG.moveSpeed + (Math.random() - 0.5) * NPC_CONFIG.speedVariation,
         targetOffset: new THREE.Vector3(
           (Math.random() - 0.5) * 3, 
@@ -110,13 +212,11 @@ const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamag
         lastDirectionChange: Date.now()
       });
       
-      // Schedule next spawn with random delay
       if (npcs.current.length < NPC_CONFIG.maxNPCs) {
         setTimeout(spawnNPC, NPC_CONFIG.spawnInterval + Math.random() * 2000);
       }
     };
     
-    // Spawn first NPC immediately
     spawnNPC();
     
     return () => {
@@ -124,7 +224,6 @@ const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamag
     };
   }, [scene, physicsWorld]);
   
-  // Update NPC behavior with improved movement logic
   useEffect(() => {
     const updateNPCs = () => {
       const now = Date.now();
@@ -132,7 +231,6 @@ const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamag
       npcs.current.forEach((npc, index) => {
         if (!npc.api || !npc.api.body || !npc.api.mesh) return;
         
-        // CRITICAL FIX: Make sure the mesh position is updated from physics
         npc.api.mesh.position.set(
           npc.api.body.position.x,
           npc.api.body.position.y,
@@ -145,7 +243,6 @@ const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamag
           npc.api.body.position.z
         );
         
-        // Update target offset occasionally for more natural movement
         if (now - npc.lastDirectionChange > 3000) {
           npc.targetOffset = new THREE.Vector3(
             (Math.random() - 0.5) * 3,
@@ -155,23 +252,18 @@ const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamag
           npc.lastDirectionChange = now;
         }
         
-        // Calculate distance to player
         const distanceToPlayer = npcPosition.distanceTo(playerPosition);
         
-        // Follow player if within range
         if (distanceToPlayer < NPC_CONFIG.followDistance) {
-          // Create an individual target with offset
           const targetPosition = new THREE.Vector3().addVectors(
             playerPosition,
             npc.targetOffset
           );
           
-          // Calculate direction toward offset target position
           const direction = new THREE.Vector3()
             .subVectors(targetPosition, npcPosition)
             .normalize();
           
-          // Look at player (not the offset target) for natural appearance
           const lookAtPosition = new THREE.Vector3(
             playerPosition.x,
             npc.api.mesh.position.y,
@@ -179,7 +271,6 @@ const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamag
           );
           npc.api.mesh.lookAt(lookAtPosition);
           
-          // Add avoidance from other NPCs
           const avoidanceVector = new THREE.Vector3();
           
           npcs.current.forEach((otherNPC, otherIndex) => {
@@ -193,7 +284,6 @@ const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamag
             
             const distance = npcPosition.distanceTo(otherPosition);
             
-            // Apply separation force when NPCs get too close
             if (distance < NPC_CONFIG.avoidanceDistance && distance > 0) {
               const repulsionStrength = 1 - (distance / NPC_CONFIG.avoidanceDistance);
               const pushDirection = new THREE.Vector3()
@@ -205,41 +295,31 @@ const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamag
             }
           });
           
-          // Move toward player if not too close for attack
           if (distanceToPlayer > NPC_CONFIG.attackDistance) {
-            // Set animation state to walking
             if (npc.api.mesh.userData && typeof npc.api.mesh.userData.setWalking === 'function') {
               npc.api.mesh.userData.setWalking(true);
             }
             
-            // Apply movement with avoidance
             const finalDirection = new THREE.Vector3()
               .addVectors(direction, avoidanceVector)
               .normalize();
             
-            // Add slight random movement for more natural appearance
             finalDirection.x += (Math.random() - 0.5) * NPC_CONFIG.directionVariation;
             finalDirection.z += (Math.random() - 0.5) * NPC_CONFIG.directionVariation;
             finalDirection.normalize();
             
-            // Apply movement using individual speed
             npc.api.body.position.x += finalDirection.x * npc.moveSpeed;
             npc.api.body.position.z += finalDirection.z * npc.moveSpeed;
             
-            // Prevent floating & sinking
             npc.api.body.position.y = Math.max(1.0, npc.api.body.position.y);
             
-            // Reset attack state
             npc.isAttacking = false;
           } else {
-            // In attack range
             if (npc.api.mesh.userData && typeof npc.api.mesh.userData.setWalking === 'function') {
               npc.api.mesh.userData.setWalking(false);
             }
             
-            // Attack player if cooldown is over
             if (!npc.isAttacking && now - npc.lastAttackTime > NPC_CONFIG.attackCooldown) {
-              // Randomly choose between punch and kick
               const attackType = Math.random() > 0.5 ? 'punch' : 'kick';
               
               npc.isAttacking = true;
@@ -247,14 +327,11 @@ const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamag
               
               if (attackType === 'punch' && npc.api.punch) {
                 npc.api.punch();
-                // Higher punch damage for more noticeable effect
                 const punchDamage = 8;
                 console.log("NPC attacking player with punch, damage:", punchDamage);
                 
-                // Call damage immediately instead of in setTimeout
                 onDamagePlayer(punchDamage);
                 
-                // Create hit effect
                 const hitEffect = new THREE.Mesh(
                   new THREE.SphereGeometry(0.5, 8, 8),
                   new THREE.MeshBasicMaterial({ 
@@ -266,24 +343,19 @@ const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamag
                 hitEffect.position.copy(playerPosition);
                 scene.add(hitEffect);
                 
-                // Remove the hit effect after animation
                 setTimeout(() => {
                   scene.remove(hitEffect);
                 }, 200);
-                
               } else if (attackType === 'kick' && npc.api.kick) {
                 npc.api.kick();
-                // Higher kick damage
                 const kickDamage = 15; 
                 console.log("NPC attacking player with kick, damage:", kickDamage);
                 
-                // Add a slight delay to match the animation timing
                 setTimeout(() => {
                   onDamagePlayer(kickDamage);
                 }, 300);
               }
               
-              // Enhance the hit effect
               const hitEffect = new THREE.Mesh(
                 new THREE.SphereGeometry(1.5, 16, 16),
                 new THREE.MeshBasicMaterial({ 
@@ -295,7 +367,6 @@ const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamag
               hitEffect.position.copy(playerPosition);
               scene.add(hitEffect);
               
-              // Animate the hit effect
               const startScale = 0.5;
               const endScale = 1.5;
               const duration = 200;
@@ -317,14 +388,12 @@ const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamag
               
               requestAnimationFrame(animateHitEffect);
               
-              // Reset attack state after animation
               setTimeout(() => {
                 npc.isAttacking = false;
               }, 1000);
             }
           }
         } else {
-          // This part is incomplete - the NPCs aren't updating their positions properly
         }
       });
       
@@ -340,7 +409,7 @@ const NPCManager = ({ scene, physicsWorld, playerPosition, playerHealth, onDamag
     };
   }, [playerPosition, playerHealth, onDamagePlayer, isSpawning]);
   
-  return null;
+  return { damageNPC: handleNPCDamage };
 };
 
 export default NPCManager;
