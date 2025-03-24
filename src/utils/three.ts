@@ -3,6 +3,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 // PS1 shader to mimic PlayStation 1 rendering
 const ps1Shader = {
@@ -391,60 +392,44 @@ export const createEnvironmentObject = (
       break;
     }
     case "car": {
-      // Car body (Fiat 126p)
-      const carBody = new THREE.Mesh(
-        new THREE.BoxGeometry(4, 1.2, 2),
-        new THREE.MeshPhongMaterial({ color: "#F44336" })
+      const loader = new GLTFLoader();
+      
+      // Create a placeholder group that will be replaced when the model loads
+      const carGroup = new THREE.Group();
+      object.add(carGroup);
+      
+      // Load the model
+      loader.load(
+        '/maluch.glb',
+        (gltf) => {
+          // Remove placeholder if it exists
+          while (object.children.length > 0) {
+            object.remove(object.children[0]);
+          }
+          
+          // Scale the model appropriately
+          gltf.scene.scale.set(1, 1, 1);
+          
+          // Add the loaded model to our object group
+          object.add(gltf.scene);
+          
+          // Make sure the model casts and receives shadows
+          gltf.scene.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
+            }
+          });
+          
+          console.log("Maluch (Fiat 126p) model loaded successfully");
+        },
+        (xhr) => {
+          console.log(`Maluch model ${(xhr.loaded / xhr.total) * 100}% loaded`);
+        },
+        (error) => {
+          console.error('Error loading Maluch model:', error);
+        }
       );
-      carBody.position.y = 0.6;
-      carBody.castShadow = true;
-      carBody.receiveShadow = true;
-      object.add(carBody);
-
-      // Car top
-      const carTop = new THREE.Mesh(
-        new THREE.BoxGeometry(2, 1, 2),
-        new THREE.MeshPhongMaterial({ color: "#F44336" })
-      );
-      carTop.position.set(-0.5, 1.7, 0);
-      carTop.castShadow = true;
-      carTop.receiveShadow = true;
-      object.add(carTop);
-
-      // Car windows
-      const windshield = new THREE.Mesh(
-        new THREE.PlaneGeometry(1, 0.8),
-        new THREE.MeshPhongMaterial({
-          color: "#B3E5FC",
-          transparent: true,
-          opacity: 0.7,
-          side: THREE.DoubleSide,
-          shininess: 100,
-        })
-      );
-      windshield.position.set(0.5, 1.7, 0);
-      windshield.rotation.y = Math.PI / 2;
-      windshield.castShadow = true;
-      windshield.receiveShadow = true;
-      object.add(windshield);
-
-      // Car wheels
-      const wheelGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.2, 16);
-      wheelGeometry.rotateX(Math.PI / 2);
-      const wheelMaterial = new THREE.MeshPhongMaterial({ color: "#212121" });
-
-      const createWheel = (x: number, z: number) => {
-        const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
-        wheel.position.set(x, 0.3, z);
-        wheel.castShadow = true;
-        wheel.receiveShadow = true;
-        object.add(wheel);
-      };
-
-      createWheel(1.5, 1.1);
-      createWheel(1.5, -1.1);
-      createWheel(-1.5, 1.1);
-      createWheel(-1.5, -1.1);
       break;
     }
   }

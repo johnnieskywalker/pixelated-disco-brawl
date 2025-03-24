@@ -225,7 +225,7 @@ const Environment = ({ scene, physicsWorld }: EnvironmentProps) => {
     // Add the Fiat 126p inside bar
     const car = {
       type: 'car' as const,
-      position: new THREE.Vector3(10, 0, 10)
+      position: new THREE.Vector3(8, 0, 8)  // Adjusted position to better fit in the bar
     };
     
     // Create all furniture
