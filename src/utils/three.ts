@@ -1,3 +1,4 @@
+
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
@@ -407,8 +408,11 @@ export const createEnvironmentObject = (
             object.remove(object.children[0]);
           }
           
-          // Scale the model appropriately
-          gltf.scene.scale.set(1, 1, 1);
+          // Scale the model appropriately - make it 3x bigger
+          gltf.scene.scale.set(3, 3, 3);
+          
+          // Raise it slightly above the ground to avoid clipping with the floor
+          gltf.scene.position.y = 0.5;
           
           // Add the loaded model to our object group
           object.add(gltf.scene);

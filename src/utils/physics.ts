@@ -72,12 +72,14 @@ export const createObjectBody = (
     }
     
     case 'car': {
-      // Create a slightly larger physics body for the Maluch car model
+      // Create a larger physics body for the Maluch car model to match its new size
       body = new CANNON.Body({
         mass: 0, // Static body
         position: position,
-        shape: new CANNON.Box(new CANNON.Vec3(2, 1, 1)) // Adjusted size to better match the model
+        shape: new CANNON.Box(new CANNON.Vec3(3, 1.5, 1.5)) // Increased size to match the 3x scale
       });
+      // Lift the physics body to match the visual model
+      body.position.y += 0.5;
       break;
     }
     
