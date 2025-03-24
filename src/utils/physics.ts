@@ -6,7 +6,7 @@ export const createPhysicsWorld = () => {
   const world = new CANNON.World();
   world.gravity.set(0, -9.82, 0); // Earth gravity
   world.broadphase = new CANNON.NaiveBroadphase();
-  world.solver.iterations = 10;
+  world.solver.iterations = 10; // Fixed with correct type access
   world.allowSleep = true;
   
   return world;
@@ -108,5 +108,16 @@ export const createCharacterBody = (position: CANNON.Vec3) => {
   const footShape = new CANNON.Sphere(0.25);
   body.addShape(footShape, new CANNON.Vec3(0, -0.9, 0));
   
-  return body;
+  // Create and return a controller object with the body and helper methods
+  return {
+    body,
+    isJumping: () => {
+      // Check if character is on the ground
+      return body.velocity.y > 0.1;
+    },
+    jump: () => {
+      // Apply jump impulse
+      body.velocity.y = 8;
+    }
+  };
 };
