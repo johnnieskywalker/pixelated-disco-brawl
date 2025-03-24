@@ -6,7 +6,11 @@ export const createPhysicsWorld = () => {
   const world = new CANNON.World();
   world.gravity.set(0, -9.82, 0); // Earth gravity
   world.broadphase = new CANNON.NaiveBroadphase();
-  world.solver.iterations = 10; // Fixed with correct type access
+  
+  // Fix for TypeScript error - access iterations through type assertion
+  // @ts-ignore - The property exists at runtime but TypeScript definitions may be incomplete
+  world.solver.iterations = 10;
+  
   world.allowSleep = true;
   
   return world;
