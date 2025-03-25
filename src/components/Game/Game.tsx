@@ -30,6 +30,9 @@ const Game = () => {
   const [otherPlayers, setOtherPlayers] = useState<PlayerInfo[]>([]);
   const [timeRemaining, setTimeRemaining] = useState(300); // 5 minutes
   
+  // State for scene reset
+  const [sceneKey, setSceneKey] = useState(0);
+  
   // Sound effects
   const backgroundMusic = useRef<HTMLAudioElement | null>(null);
   
@@ -79,10 +82,23 @@ const Game = () => {
     }
   }, [gameState]);
   
+  // Force reset player stats when going back to menu
+  useEffect(() => {
+    if (gameState === 'menu') {
+      console.log("Resetting player stats when returning to menu");
+      setPlayerInfo({
+        id: 'player-1',
+        name: 'Player',
+        health: 100,
+        score: 0,
+      });
+      setTimeRemaining(300);
+    }
+  }, [gameState]);
+  
   // Handle game state transitions
   const handleStartGame = () => {
     console.log("Starting game - switching to playing state");
-    setGameState('playing');
     
     // Reset player info when starting a new game
     setPlayerInfo({
@@ -94,6 +110,12 @@ const Game = () => {
     
     // Reset timer
     setTimeRemaining(300);
+    
+    // Force scene remount by changing key
+    setSceneKey(prevKey => prevKey + 1);
+    
+    // Switch to playing state
+    setGameState('playing');
     
     // Play background music
     if (backgroundMusic.current) {
@@ -143,7 +165,34 @@ const Game = () => {
   // Handle restart game after game over
   const handleRestartGame = () => {
     console.log("Restarting game");
+    // Force scene remount by changing key
+    setSceneKey(prevKey => prevKey + 1);
     handleStartGame();
+  };
+  
+  // Go back to main menu (used from pause menu and game over screen)
+  const handleReturnToMenu = () => {
+    console.log("Returning to main menu");
+    setGameState('menu');
+    
+    // Force scene remount by changing key
+    setSceneKey(prevKey => prevKey + 1);
+    
+    // Reset player info
+    setPlayerInfo({
+      id: 'player-1',
+      name: 'Player',
+      health: 100,
+      score: 0,
+    });
+    
+    // Reset timer
+    setTimeRemaining(300);
+    
+    // Stop music
+    if (backgroundMusic.current) {
+      backgroundMusic.current.pause();
+    }
   };
   
   // Render the game state
@@ -246,7 +295,7 @@ const Game = () => {
                 
                 <button 
                   className="ps1-button w-full font-retro text-xl py-3"
-                  onClick={() => setGameState('menu')}
+                  onClick={handleReturnToMenu}
                 >
                   MAIN MENU
                 </button>
@@ -272,6 +321,7 @@ const Game = () => {
             this ensures the player is initialized properly */}
         {gameState !== 'loading' && (
           <Scene 
+            key={sceneKey} // Add key to force remount when needed
             containerRef={containerRef} 
             onUpdatePlayerInfo={(info) => {
               setPlayerInfo(prev => ({

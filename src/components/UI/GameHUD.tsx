@@ -167,7 +167,7 @@ const GameHUD = ({ playerInfo, otherPlayers, timeRemaining, onPause, onRestart }
               
               <Button 
                 className="ps1-button font-retro text-xl"
-                onClick={onPause}
+                onClick={onPause} // This now takes player back to main menu
               >
                 MAIN MENU
               </Button>

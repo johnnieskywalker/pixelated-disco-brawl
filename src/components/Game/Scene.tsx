@@ -16,6 +16,8 @@ interface SceneProps {
 }
 
 const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
+  console.log("Scene component mounting with new instance");
+  
   const sceneRef = useRef<{
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
@@ -129,12 +131,18 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
       );
       camera.lookAt(playerPosition);
       
+      // Ensure player health is reset to 100
+      setPlayerHealth(100);
+      if (onUpdatePlayerInfo) {
+        onUpdatePlayerInfo({ health: 100, score: 0 });
+      }
+      
       setPlayerReady(true);
       console.log("Player initialized successfully");
     } catch (error) {
       console.error("Error initializing player:", error);
     }
-  }, [gameReady]);
+  }, [gameReady, onUpdatePlayerInfo]);
   
   // Comment out or remove this useEffect that's handling movement
   /*
