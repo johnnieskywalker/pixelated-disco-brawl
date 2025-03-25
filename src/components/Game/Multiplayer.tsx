@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import io, { Socket } from 'socket.io-client';
@@ -24,8 +25,7 @@ interface MultiplayerProps {
   onPlayerDamageNPC?: (callback: (id: string, damage: number) => void) => void;
 }
 
-// This is a simplified multiplayer component for the initial implementation
-// In a full implementation, we would connect to an actual server
+// This is a simplified multiplayer component - it just provides access to NPCs
 const Multiplayer = ({
   onConnect,
   onDisconnect,
@@ -48,7 +48,7 @@ const Multiplayer = ({
     // Generate a random player ID
     const playerId = `player-${Math.floor(Math.random() * 10000)}`;
     
-    // Create some fake NPCs - only two security guards now to reduce character count
+    // Create just two NPCs - security guards only
     const fakePlayers: Record<string, PlayerState> = {
       'security-1': {
         id: 'security-1',

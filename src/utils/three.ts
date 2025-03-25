@@ -412,7 +412,7 @@ export const createEnvironmentObject = (
           gltf.scene.scale.set(3, 3, 3);
           
           // Raise it slightly above the ground to avoid clipping with the floor
-          gltf.scene.position.y = 0.5;
+          gltf.scene.position.y = 0.7;
           
           // Add the loaded model to our object group
           object.add(gltf.scene);
