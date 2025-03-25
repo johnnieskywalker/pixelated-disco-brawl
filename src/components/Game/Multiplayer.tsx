@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import io, { Socket } from 'socket.io-client';
@@ -49,7 +48,7 @@ const Multiplayer = ({
     // Generate a random player ID
     const playerId = `player-${Math.floor(Math.random() * 10000)}`;
     
-    // Create some fake NPCs
+    // Create some fake NPCs - only two security guards now to reduce character count
     const fakePlayers: Record<string, PlayerState> = {
       'security-1': {
         id: 'security-1',
@@ -159,53 +158,6 @@ const Multiplayer = ({
         onPlayerUpdate({...playersRef.current});
       }
     }, 100);
-    
-    // Simulate a new player joining after a delay
-    setTimeout(() => {
-      if (!connected) return;
-      
-      const newPlayerId = `player-${Math.floor(Math.random() * 10000)}`;
-      const newPlayerName = 'Marian';
-      
-      playersRef.current[newPlayerId] = {
-        id: newPlayerId,
-        position: { x: 0, y: 0, z: -10 },
-        quaternion: { x: 0, y: 0, z: 0, w: 1 },
-        health: 100,
-        score: 0,
-        name: newPlayerName,
-        color: '#E91E63',
-      };
-      
-      if (onPlayerJoin) {
-        onPlayerJoin(newPlayerId, newPlayerName);
-      }
-      
-      if (onPlayerUpdate) {
-        onPlayerUpdate({...playersRef.current});
-      }
-      
-      // Simulate this player moving around
-      const simulatePlayerMovement = setInterval(() => {
-        if (!connected) return;
-        
-        const player = playersRef.current[newPlayerId];
-        if (!player) return;
-        
-        // Simple circular movement
-        const time = Date.now() / 1000;
-        player.position.x = 5 * Math.sin(time);
-        player.position.z = 5 * Math.cos(time);
-        
-        if (onPlayerUpdate) {
-          onPlayerUpdate({...playersRef.current});
-        }
-      }, 100);
-      
-      // Clean up this interval when component unmounts
-      return () => clearInterval(simulatePlayerMovement);
-      
-    }, 5000);
     
     return () => {
       // Clean up
