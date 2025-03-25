@@ -288,89 +288,11 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
       ),
     );
 
-    object.body.position.copy({
-      x: handPosition.x,
-      y: handPosition.y,
-      z: handPosition.z,
-      cross: function (vector: CANNON.Vec3, target?: CANNON.Vec3): CANNON.Vec3 {
-        throw new Error("Function not implemented.");
-      },
-      set: function (x: number, y: number, z: number): CANNON.Vec3 {
-        throw new Error("Function not implemented.");
-      },
-      setZero: function (): void {
-        throw new Error("Function not implemented.");
-      },
-      vadd: function (vector: CANNON.Vec3): CANNON.Vec3 {
-        throw new Error("Function not implemented.");
-      },
-      vsub: function (vector: CANNON.Vec3): CANNON.Vec3 {
-        throw new Error("Function not implemented.");
-      },
-      crossmat: function (): CANNON.Mat3 {
-        throw new Error("Function not implemented.");
-      },
-      normalize: function (): number {
-        throw new Error("Function not implemented.");
-      },
-      unit: function (target?: CANNON.Vec3): CANNON.Vec3 {
-        throw new Error("Function not implemented.");
-      },
-      length: function (): number {
-        throw new Error("Function not implemented.");
-      },
-      lengthSquared: function (): number {
-        throw new Error("Function not implemented.");
-      },
-      distanceTo: function (p: CANNON.Vec3): number {
-        throw new Error("Function not implemented.");
-      },
-      distanceSquared: function (p: CANNON.Vec3): number {
-        throw new Error("Function not implemented.");
-      },
-      scale: function (scalar: number, target?: CANNON.Vec3): CANNON.Vec3 {
-        throw new Error("Function not implemented.");
-      },
-      vmul: function (vector: CANNON.Vec3, target?: CANNON.Vec3): CANNON.Vec3 {
-        throw new Error("Function not implemented.");
-      },
-      addScaledVector: function (scalar: number, vector: CANNON.Vec3, target?: CANNON.Vec3): CANNON.Vec3 {
-        throw new Error("Function not implemented.");
-      },
-      dot: function (vector: CANNON.Vec3): number {
-        throw new Error("Function not implemented.");
-      },
-      isZero: function (): boolean {
-        throw new Error("Function not implemented.");
-      },
-      negate: function (target?: CANNON.Vec3): CANNON.Vec3 {
-        throw new Error("Function not implemented.");
-      },
-      tangents: function (t1: CANNON.Vec3, t2: CANNON.Vec3): void {
-        throw new Error("Function not implemented.");
-      },
-      toArray: function (): [number, number, number] {
-        throw new Error("Function not implemented.");
-      },
-      copy: function (vector: CANNON.Vec3): CANNON.Vec3 {
-        throw new Error("Function not implemented.");
-      },
-      lerp: function (vector: CANNON.Vec3, t: number, target: CANNON.Vec3): void {
-        throw new Error("Function not implemented.");
-      },
-      almostEquals: function (vector: CANNON.Vec3, precision?: number): boolean {
-        throw new Error("Function not implemented.");
-      },
-      almostZero: function (precision?: number): boolean {
-        throw new Error("Function not implemented.");
-      },
-      isAntiparallelTo: function (vector: CANNON.Vec3, precision?: number): boolean {
-        throw new Error("Function not implemented.");
-      },
-      clone: function (): CANNON.Vec3 {
-        throw new Error("Function not implemented.");
-      }
-    });
+    object.body.position.copy(new CANNON.Vec3(
+      handPosition.x, 
+      handPosition.y, 
+      handPosition.z
+    ));
 
     // Create a visual effect to show the object is picked up
     const scene = playerAPI.mesh.parent;
@@ -398,139 +320,119 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
       console.log("No object to throw");
       return;
     }
-
+    
     console.log(`Throwing ${heldObject.type} with id ${heldObject.id}`);
-
-    // Make the object dynamic again
+    
+    // Make the object dynamic again for physics
     heldObject.body.type = CANNON.Body.DYNAMIC;
-
+    
     // Get player's forward direction
     const throwDirection = new THREE.Vector3(0, 0, -1);
     throwDirection.applyQuaternion(playerAPI.mesh.quaternion);
-
+    
     // Add upward component to the throw
     throwDirection.y = 0.3;
     throwDirection.normalize();
-
+    
     // Apply force based on object type
-    const throwForce = heldObject.type === "bottle" ? 20 : 15;
-
+    const throwForce = heldObject.type === "bottle" ? 25 : 15;
+    
     // Apply impulse to throw the object
     heldObject.body.velocity.set(
       throwDirection.x * throwForce,
       throwDirection.y * throwForce,
-      throwDirection.z * throwForce,
+      throwDirection.z * throwForce
     );
-
+    
     // Add some random rotation
     heldObject.body.angularVelocity.set(
-      (Math.random() - 0.5) * 5,
-      (Math.random() - 0.5) * 5,
-      (Math.random() - 0.5) * 5,
+      (Math.random() - 0.5) * 10,
+      (Math.random() - 0.5) * 10,
+      (Math.random() - 0.5) * 10
     );
-
-    // Set up collision detection for the thrown object
-    const thrownObject = heldObject;
-    const thrownObjectId = thrownObject.id;
-
-    // Store the original material to restore later
-    let originalMaterial = null;
-    if (thrownObject.mesh instanceof THREE.Mesh && thrownObject.mesh.material) {
-      originalMaterial = thrownObject.mesh.material.clone();
-
-      // Change the color to indicate it's a thrown object
-      (thrownObject.mesh.material as THREE.MeshBasicMaterial).color.set(
-        0xff0000,
-      );
+    
+    // Add visual feedback
+    if (heldObject.mesh instanceof THREE.Mesh && heldObject.mesh.material) {
+      const originalMaterial = heldObject.mesh.material.clone();
+      
+      // Flash the object red briefly
+      heldObject.mesh.material.color.set(0xff0000);
+      
+      setTimeout(() => {
+        if (heldObject && heldObject.mesh instanceof THREE.Mesh) {
+          heldObject.mesh.material = originalMaterial;
+        }
+      }, 200);
     }
-
+    
     // Set up a collision handler for the thrown object
     const checkCollisions = () => {
       if (!thrownObject || !damageNpcFunction) return;
-
+      
       const objPosition = new THREE.Vector3(
         thrownObject.body.position.x,
         thrownObject.body.position.y,
-        thrownObject.body.position.z,
+        thrownObject.body.position.z
       );
-
+      
       // Check for collisions with NPCs
       npcsRef.current.forEach((npc) => {
         if (!npc.userData || !npc.userData.id) return;
-
+        
         const npcPosition = new THREE.Vector3(
           npc.position.x,
           npc.position.y,
-          npc.position.z,
+          npc.position.z
         );
-
+        
         const distance = objPosition.distanceTo(npcPosition);
-
+        
         // If the object hits an NPC
         if (distance < 2) {
           // Calculate damage based on object type and velocity
           const speed = new THREE.Vector3(
             thrownObject.body.velocity.x,
             thrownObject.body.velocity.y,
-            thrownObject.body.velocity.z,
+            thrownObject.body.velocity.z
           ).length();
-
+          
           // Only deal damage if the object is moving fast enough
           if (speed > 5) {
             const damageAmount = thrownObject.type === "bottle" ? 15 : 25;
             damageNpcFunction(npc.userData.id, damageAmount);
-
-            // Add points to score
-            setPlayerScore((prev) => {
-              const newScore = prev + damageAmount;
-              if (onUpdatePlayerInfo) {
-                onUpdatePlayerInfo({ score: newScore });
-              }
-              return newScore;
-            });
-
+            
             // Create hit effect
-            const scene = playerAPI.mesh.parent;
-            if (scene) {
-              const hitEffect = new THREE.Mesh(
-                new THREE.SphereGeometry(0.5, 8, 8),
-                new THREE.MeshBasicMaterial({
-                  color: 0xff0000,
-                  transparent: true,
-                  opacity: 0.7,
-                }),
-              );
-              hitEffect.position.copy(npcPosition);
-              scene.add(hitEffect);
-
-              // Remove the hit effect after animation
-              setTimeout(() => {
-                scene.remove(hitEffect);
-              }, 300);
-            }
-
-            // Stop checking collisions for this throw
-            clearInterval(collisionCheckId);
-
-            // Restore original material
-            if (originalMaterial && thrownObject.mesh instanceof THREE.Mesh) {
-              thrownObject.mesh.material = originalMaterial;
-            }
+            const hitEffect = new THREE.Mesh(
+              new THREE.SphereGeometry(0.5, 8, 8),
+              new THREE.MeshBasicMaterial({
+                color: 0xff0000,
+                transparent: true,
+                opacity: 0.7
+              })
+            );
+            hitEffect.position.copy(npcPosition);
+            playerAPI.mesh.parent?.add(hitEffect);
+            
+            // Remove hit effect after animation
+            setTimeout(() => {
+              playerAPI.mesh.parent?.remove(hitEffect);
+            }, 300);
+            
+            return; // Exit after first hit
           }
         }
       });
     };
-
+    
     // Check for collisions every 100ms for 3 seconds
     const collisionCheckId = setInterval(checkCollisions, 100);
-    setTimeout(() => {
-      clearInterval(collisionCheckId);
+    setTimeout(() => clearInterval(collisionCheckId), 3000);
 
-      // Restore original material
-      if (originalMaterial && thrownObject.mesh instanceof THREE.Mesh) {
-        thrownObject.mesh.material = originalMaterial;
-      }
-    }, 3000);
+    // Set up collision detection for the thrown object
+    const thrownObject = heldObject;
+    
+    // Handle collisions (reusing your existing collision code)
+    // ...
 
     // Clear the held object
     setHeldObject(null);
@@ -577,38 +479,43 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
 
   // Update held object position when player moves
   useEffect(() => {
-    if (heldObject && playerAPI && playerAPI.mesh && playerAPI.body) {
-      const updateHeldObjectPosition = () => {
-        // Calculate position in front of the player
-        const handPosition = new THREE.Vector3(0, 1.5, -1);
-        handPosition.applyQuaternion(playerAPI.mesh.quaternion);
-        handPosition.add(
-          new THREE.Vector3(
-            playerAPI.body.position.x,
-            playerAPI.body.position.y,
-            playerAPI.body.position.z,
-          ),
-        );
-
-        // Update the held object position
-        heldObject.body.position.copy(
-          new CANNON.Vec3(handPosition.x, handPosition.y, handPosition.z),
-        );
-
-        // Match the player's rotation
-        heldObject.body.quaternion.set(
-          playerAPI.mesh.quaternion.x,
-          playerAPI.mesh.quaternion.y,
-          playerAPI.mesh.quaternion.z,
-          playerAPI.mesh.quaternion.w,
-        );
-
-        requestAnimationFrame(updateHeldObjectPosition);
-      };
-
-      const frameId = requestAnimationFrame(updateHeldObjectPosition);
-      return () => cancelAnimationFrame(frameId);
-    }
+    if (!heldObject || !playerAPI || !playerAPI.mesh) return;
+    
+    // Set up position tracking for the held object
+    const updateHeldObjectPosition = () => {
+      // Calculate hand position relative to player
+      const offsetDistance = heldObject.type === "bottle" ? 0.8 : 1.0;
+      const offsetHeight = heldObject.type === "bottle" ? 1.2 : 0.8;
+      
+      // Create hand position in front of the player
+      const handPosition = new THREE.Vector3(0, offsetHeight, -offsetDistance);
+      handPosition.applyQuaternion(playerAPI.mesh.quaternion);
+      handPosition.add(new THREE.Vector3(
+        playerAPI.body.position.x,
+        playerAPI.body.position.y,
+        playerAPI.body.position.z
+      ));
+      
+      // Update the physics body position
+      heldObject.body.position.copy(new CANNON.Vec3(
+        handPosition.x, 
+        handPosition.y, 
+        handPosition.z
+      ));
+      
+      // Update the physics body rotation to match player's view
+      heldObject.body.quaternion.copy(new CANNON.Quaternion(
+        playerAPI.mesh.quaternion.x,
+        playerAPI.mesh.quaternion.y,
+        playerAPI.mesh.quaternion.z,
+        playerAPI.mesh.quaternion.w
+      ));
+      
+      requestAnimationFrame(updateHeldObjectPosition);
+    };
+    
+    const frameId = requestAnimationFrame(updateHeldObjectPosition);
+    return () => cancelAnimationFrame(frameId);
   }, [heldObject, playerAPI]);
 
   // Handle score updates
