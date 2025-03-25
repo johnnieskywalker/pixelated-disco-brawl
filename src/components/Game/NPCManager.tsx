@@ -21,17 +21,17 @@ const NPC_CONFIG = {
   ],
   colors: ['#FF5722', '#9C27B0', '#03A9F4', '#FFC107', '#607D8B'],
   names: ['Bouncerz', 'Młody', 'Zakapior', 'Rudy', 'Pan Wiesiek'],
-  maxNPCs: 5,
-  spawnInterval: 10000,
+  maxNPCs: 3, // Reduced from 5 to 3 to save resources
+  spawnInterval: 15000, // Increased to reduce spawn frequency
   followDistance: 8,
   attackDistance: 2,
   moveSpeed: 0.03,
   attackCooldown: 2000,
-  // Add new parameters for movement variation
-  positionVariance: 2.0,     // Random offset to spawn points
-  speedVariation: 0.01,      // Variation in move speed
-  directionVariation: 0.2,   // How much they deviate from direct path
-  avoidanceDistance: 2.0,    // How far they try to stay from each other
+  // Parameters for movement variation
+  positionVariance: 2.0,
+  speedVariation: 0.01,
+  directionVariation: 0.2,
+  avoidanceDistance: 2.0,
 };
 
 interface NPCManagerProps {
@@ -71,6 +71,7 @@ const NPCManager = ({
     lastDirectionChange: number;
   }>>([]);
   const [isSpawning, setIsSpawning] = useState(true);
+  const updateIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (onRegisterNPCs) {
@@ -166,11 +167,7 @@ const NPCManager = ({
       onRegisterDamageNPC(handleNPCDamage);
     }
     
-    (window as any).damageNPC = handleNPCDamage;
-    
-    return () => {
-      delete (window as any).damageNPC;
-    };
+    return () => {};
   }, [onRegisterDamageNPC]);
 
   useEffect(() => {
@@ -233,6 +230,7 @@ const NPCManager = ({
   }, [scene, physicsWorld]);
   
   useEffect(() => {
+    // Use a less frequent update interval to save resources (from requestAnimationFrame to setInterval)
     const updateNPCs = () => {
       const now = Date.now();
       
@@ -364,56 +362,22 @@ const NPCManager = ({
                 }, 300);
               }
               
-              const hitEffect = new THREE.Mesh(
-                new THREE.SphereGeometry(1.5, 16, 16),
-                new THREE.MeshBasicMaterial({ 
-                  color: 0xff0000, 
-                  transparent: true, 
-                  opacity: 0.7 
-                })
-              );
-              hitEffect.position.copy(playerPosition);
-              scene.add(hitEffect);
-              
-              const startScale = 0.5;
-              const endScale = 1.5;
-              const duration = 200;
-              const startTime = Date.now();
-              
-              const animateHitEffect = () => {
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                
-                const scale = startScale + (endScale - startScale) * progress;
-                hitEffect.scale.set(scale, scale, scale);
-                
-                if (progress < 1) {
-                  requestAnimationFrame(animateHitEffect);
-                } else {
-                  scene.remove(hitEffect);
-                }
-              };
-              
-              requestAnimationFrame(animateHitEffect);
-              
               setTimeout(() => {
                 npc.isAttacking = false;
               }, 1000);
             }
           }
-        } else {
         }
       });
-      
-      if (isSpawning) {
-        requestAnimationFrame(updateNPCs);
-      }
     };
     
-    const animationId = requestAnimationFrame(updateNPCs);
+    // Use setInterval instead of requestAnimationFrame for less frequent updates
+    updateIntervalRef.current = window.setInterval(updateNPCs, 100) as unknown as number;
     
     return () => {
-      cancelAnimationFrame(animationId);
+      if (updateIntervalRef.current !== null) {
+        clearInterval(updateIntervalRef.current);
+      }
     };
   }, [playerPosition, playerHealth, onDamagePlayer, isSpawning, scene]);
   

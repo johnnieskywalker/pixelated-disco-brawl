@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
@@ -27,6 +28,7 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
   const physicsWorldRef = useRef<CANNON.World | null>(null);
   const npcsRef = useRef<THREE.Object3D[]>([]);
   const [playerAPI, setPlayerAPI] = useState<ReturnType<typeof Player> | null>(null);
+  const playerCreatedRef = useRef(false); // Track if player was already created
   
   const [gameReady, setGameReady] = useState(false);
   const [playerReady, setPlayerReady] = useState(false);
@@ -76,6 +78,7 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
         if (sceneRef.current) {
           sceneRef.current.cleanUp();
         }
+        playerCreatedRef.current = false; // Reset on cleanup
       };
     } catch (error) {
       console.error("Error initializing scene:", error);
@@ -85,8 +88,8 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
   
   // Create player when scene is ready
   useEffect(() => {
-    if (!gameReady || !sceneRef.current || !physicsWorldRef.current) {
-      console.log("Not ready to create player yet");
+    if (!gameReady || !sceneRef.current || !physicsWorldRef.current || playerCreatedRef.current) {
+      console.log("Not ready to create player yet or player already created");
       return;
     }
     
@@ -95,6 +98,7 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
       const physicsWorld = physicsWorldRef.current;
       
       console.log("Creating player instance");
+      playerCreatedRef.current = true; // Mark player as created to prevent duplicates
       
       // Position player directly below the disco ball (which is at 0, 8, 0)
       const playerPosition = new THREE.Vector3(0, 2, 0);
@@ -108,7 +112,7 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
         isLocalPlayer: true,
         onUpdate: (position) => {
           // Just for debugging, no functional use
-          console.log("Player position updated:", position);
+          // console.log("Player position updated:", position);
         }
       });
       

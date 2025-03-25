@@ -1,7 +1,5 @@
-
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import io, { Socket } from 'socket.io-client';
 
 interface PlayerState {
   id: string;
@@ -37,14 +35,13 @@ const Multiplayer = ({
   onPlayerDamageNPC,
 }: MultiplayerProps) => {
   const [connected, setConnected] = useState(false);
-  const socket = useRef<Socket | null>(null);
   const playersRef = useRef<Record<string, PlayerState>>({});
   
   // Simplified implementation without actual networking
   useEffect(() => {
     console.log("Multiplayer component initializing");
     
-    // Generate a random player ID
+    // Generate a random player ID but don't create an extra player character
     const playerId = `player-${Math.floor(Math.random() * 10000)}`;
     
     // Create exactly two security guard NPCs for a controlled experience
@@ -136,7 +133,7 @@ const Multiplayer = ({
       onPlayerDamageNPC(handlePlayerDamageNPC);
     }
     
-    // Simulate periodic updates from NPCs
+    // Simulate periodic updates from NPCs, but with reduced frequency to save resources
     const simulateNPCMovement = setInterval(() => {
       if (!connected) return;
       
@@ -159,7 +156,7 @@ const Multiplayer = ({
       if (onPlayerUpdate) {
         onPlayerUpdate({...playersRef.current});
       }
-    }, 100);
+    }, 200); // Increased interval from 100ms to 200ms to reduce resource usage
     
     return () => {
       // Clean up
