@@ -1,3 +1,4 @@
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,8 +18,14 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+          {/* Add this before the catchall route */}
+          {import.meta.env.VITE_TEMPO && <Route path="/tempobook/*" />}
+
           <Route path="*" element={<NotFound />} />
         </Routes>
+        {/* Render Tempo routes component */}
+        {/* <TempoRoutes /> */}
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
