@@ -180,6 +180,12 @@ const NPCManager = ({
     return () => {};
   }, [onRegisterDamageNPC]);
 
+  // Add this function after handleRegisterDamageNPC to properly track NPCs
+  const handleRegisterNPCs = (npcList: any[]) => {
+    console.log("NPCs registered:", npcList.length);
+    npcsRef.current = npcList.map(npc => npc.api.mesh);
+  };
+
   useEffect(() => {
     const spawnNPC = () => {
       if (npcs.current.length >= NPC_CONFIG.maxNPCs || !isSpawning) return;
@@ -450,6 +456,14 @@ const NPCManager = ({
       }
     };
   }, [playerPosition, playerHealth, onDamagePlayer, isSpawning, scene]);
+
+  // Update your NPCManager.tsx component to include this function
+  useEffect(() => {
+    if (onRegisterNPCs && npcs.current.length > 0) {
+      console.log("Registering NPCs with Scene");
+      onRegisterNPCs(npcs.current);
+    }
+  }, [npcs.current.length, onRegisterNPCs]);
 
   // Return null instead of an object
   return null;

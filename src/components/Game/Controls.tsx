@@ -117,6 +117,55 @@ const Controls = ({
     });
   };
 
+  const handlePickup = () => {
+    // Get player position
+    const playerPosition = new THREE.Vector3(
+      cannonBody.position.x,
+      cannonBody.position.y,
+      cannonBody.position.z,
+    );
+
+    // Get player's forward direction
+    const playerDirection = new THREE.Vector3(0, 0, -1);
+    playerDirection.applyQuaternion(playerMesh.quaternion);
+
+    console.log("Checking for objects to pick up. Nearby objects:", nearbyObjects.length);
+    
+    // Check for nearby objects that can be picked up
+    const pickupRange = 5.0; // INCREASED for even easier pickups
+    let closestObject = null;
+    let closestDistance = pickupRange;
+
+    // Debug the nearby objects
+    nearbyObjects.forEach((obj) => {
+      // Only allow picking up bottles and chairs
+      if (obj.type !== "bottle" && obj.type !== "chair") return;
+
+      const objPosition = new THREE.Vector3(
+        obj.body.position.x,
+        obj.body.position.y,
+        obj.body.position.z,
+      );
+
+      const distance = playerPosition.distanceTo(objPosition);
+      console.log(`Object ${obj.id} (${obj.type}) at distance: ${distance}`);
+
+      // Make it MUCH easier to pick up objects by removing directional constraints
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestObject = obj;
+      }
+    });
+
+    if (closestObject) {
+      console.log("Found object to pick up:", closestObject);
+      onPickup(closestObject);
+    } else {
+      console.log("No objects found in range");
+      // Don't call onPickup with null, it will just log an error
+    }
+  };
+
   useEffect(() => {
     console.log("Controls component mounted");
 
@@ -152,56 +201,12 @@ const Controls = ({
           checkAttackHits("kick");
           break;
         case "KeyE": {
-          onPickup();
-          // Find the closest object within pickup range
-          const playerPosition = new THREE.Vector3(
-            cannonBody.position.x,
-            cannonBody.position.y,
-            cannonBody.position.z,
-          );
-
-          // Get player's forward direction
-          const playerDirection = new THREE.Vector3(0, 0, -1);
-          playerDirection.applyQuaternion(playerMesh.quaternion);
-
-          // Check for nearby objects that can be picked up
-          const pickupRange = 2.5;
-          let closestObject = null;
-          let closestDistance = pickupRange;
-
-          nearbyObjects.forEach((obj) => {
-            // Only allow picking up bottles and chairs
-            if (obj.type !== "bottle" && obj.type !== "chair") return;
-
-            const objPosition = new THREE.Vector3(
-              obj.body.position.x,
-              obj.body.position.y,
-              obj.body.position.z,
-            );
-
-            const distance = playerPosition.distanceTo(objPosition);
-
-            if (distance < closestDistance) {
-              const toObj = new THREE.Vector3()
-                .subVectors(objPosition, playerPosition)
-                .normalize();
-              const dotProduct = toObj.dot(playerDirection);
-
-              // Object is in front of player
-              if (dotProduct > 0.5) {
-                closestDistance = distance;
-                closestObject = obj;
-              }
-            }
-          });
-
-          if (closestObject) {
-            onPickup(closestObject);
-          }
+          handlePickup(); // This calls the local handlePickup function
           break;
         }
         case "KeyQ":
-          onThrow();
+          console.log("Throw button pressed, calling onThrow");
+          onThrow(); // This calls the prop function
           break;
       }
     };
@@ -268,8 +273,8 @@ const Controls = ({
       }
     };
 
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("keyup", onKeyUp);
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("contextmenu", onContextMenu);
     document.addEventListener("pointerlockchange", onPointerLockChange);
@@ -279,8 +284,8 @@ const Controls = ({
     console.log("All control event listeners attached");
 
     return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("contextmenu", onContextMenu);
       document.removeEventListener("pointerlockchange", onPointerLockChange);
