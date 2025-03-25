@@ -25,7 +25,7 @@ interface MultiplayerProps {
   onPlayerDamageNPC?: (callback: (id: string, damage: number) => void) => void;
 }
 
-// This is a simplified multiplayer component - it just provides access to NPCs
+// This is a simplified multiplayer component - it just manages NPCs
 const Multiplayer = ({
   onConnect,
   onDisconnect,
@@ -40,16 +40,15 @@ const Multiplayer = ({
   const socket = useRef<Socket | null>(null);
   const playersRef = useRef<Record<string, PlayerState>>({});
   
-  // For the MVP, we'll simulate networking without an actual backend
+  // Simplified implementation without actual networking
   useEffect(() => {
-    // Simulate connecting to server
-    console.log("Simulating connection to multiplayer server...");
+    console.log("Multiplayer component initializing");
     
     // Generate a random player ID
     const playerId = `player-${Math.floor(Math.random() * 10000)}`;
     
-    // Create just two NPCs - security guards only
-    const fakePlayers: Record<string, PlayerState> = {
+    // Create exactly two security guard NPCs for a controlled experience
+    const npcPlayers: Record<string, PlayerState> = {
       'security-1': {
         id: 'security-1',
         position: { x: 5, y: 0, z: -5 },
@@ -70,7 +69,7 @@ const Multiplayer = ({
       },
     };
     
-    playersRef.current = fakePlayers;
+    playersRef.current = npcPlayers;
     
     // Simulate successful connection
     setTimeout(() => {
@@ -78,15 +77,18 @@ const Multiplayer = ({
       
       if (onConnect) {
         onConnect(playerId);
+        console.log("Multiplayer connected with ID:", playerId);
       }
       
       if (onPlayerUpdate) {
-        onPlayerUpdate(fakePlayers);
+        onPlayerUpdate(npcPlayers);
+        console.log("Initial NPC update sent, NPC count:", Object.keys(npcPlayers).length);
       }
       
       if (onPlayerJoin) {
-        Object.keys(fakePlayers).forEach(id => {
-          onPlayerJoin(id, fakePlayers[id].name);
+        Object.keys(npcPlayers).forEach(id => {
+          onPlayerJoin(id, npcPlayers[id].name);
+          console.log(`NPC joined: ${id} (${npcPlayers[id].name})`);
         });
       }
     }, 1000);
@@ -95,11 +97,11 @@ const Multiplayer = ({
     if (onSendPlayerState) {
       onSendPlayerState((state) => {
         // In a real implementation, this would send the state to the server
-        console.log("Player state update:", state);
+        console.log("Player state update received:", state);
       });
     }
     
-    // Simulate handling player damage to NPCs
+    // Handle player damage to NPCs
     const handlePlayerDamageNPC = (npcId: string, damage: number) => {
       console.log(`Player damaged NPC ${npcId} for ${damage} points`);
       
@@ -107,7 +109,7 @@ const Multiplayer = ({
         // Reduce NPC health
         playersRef.current[npcId].health = Math.max(0, playersRef.current[npcId].health - damage);
         
-        // If NPC is defeated, increase player score
+        // If NPC is defeated, respawn after 5 seconds
         if (playersRef.current[npcId].health <= 0) {
           console.log(`NPC ${npcId} defeated!`);
           // Respawn NPC after 5 seconds
@@ -163,6 +165,7 @@ const Multiplayer = ({
       // Clean up
       clearInterval(simulateNPCMovement);
       setConnected(false);
+      console.log("Multiplayer component unmounting");
       
       if (onDisconnect) {
         onDisconnect();

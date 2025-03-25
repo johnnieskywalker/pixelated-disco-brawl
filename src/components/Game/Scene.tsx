@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
@@ -38,14 +37,6 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
   const [gameTime, setGameTime] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [damageNpcFunction, setDamageNpcFunction] = useState<((id: string, damage: number) => void) | null>(null);
-  
-  // Movement state tracking
-  const movementRef = useRef({
-    forward: false,
-    backward: false,
-    left: false,
-    right: false
-  });
   
   // Initialize Three.js scene and physics world
   useEffect(() => {
@@ -116,6 +107,7 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
         color: '#E91E63',  // Bright pink to make it more visible
         isLocalPlayer: true,
         onUpdate: (position) => {
+          // Just for debugging, no functional use
           console.log("Player position updated:", position);
         }
       });
@@ -143,39 +135,6 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
       console.error("Error initializing player:", error);
     }
   }, [gameReady, onUpdatePlayerInfo]);
-  
-  // Comment out or remove this useEffect that's handling movement
-  /*
-  useEffect(() => {
-    if (!playerReady || !playerAPI) return;
-    
-    // Movement handling
-    const movePlayerPhysics = () => {
-      // Calculate movement direction
-      const movement = new CANNON.Vec3(0, 0, 0);
-      
-      if (movementRef.current.forward) movement.z -= moveSpeed;
-      if (movementRef.current.backward) movement.z += moveSpeed;
-      if (movementRef.current.left) movement.x -= moveSpeed;
-      if (movementRef.current.right) movement.x += moveSpeed;
-      
-      // If there's movement, apply it to the physics body
-      if (movement.x !== 0 || movement.z !== 0) {
-        // ... movement logic ...
-      } else {
-        // ... stop movement logic ...
-      }
-      
-      requestAnimationFrame(movePlayerPhysics);
-    };
-    
-    const movementLoop = requestAnimationFrame(movePlayerPhysics);
-    
-    return () => {
-      cancelAnimationFrame(movementLoop);
-    };
-  }, [playerReady, playerAPI]);
-  */
   
   // Add an effect to track player position for NPCs to follow
   useEffect(() => {
@@ -279,12 +238,12 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
             camera={sceneRef.current.camera}
             cannonBody={playerAPI.body!}
             playerMesh={playerAPI.mesh!}
-            onJump={handleJump}
-            onPunch={handlePunch}
-            onKick={handleKick}
-            onPickup={handlePickup}
-            onThrow={handleThrow}
-            npcs={npcsRef.current.map(npc => ({ api: { id: npc.uuid, body: new CANNON.Body(), mesh: npc } })) || []}  // Add this line to pass NPCs to Controls
+            onJump={playerAPI.jump!}
+            onPunch={playerAPI.punch!}
+            onKick={playerAPI.kick!}
+            onPickup={() => console.log("Pickup action")}
+            onThrow={() => console.log("Throw action")}
+            npcs={npcsRef.current.map(npc => ({ api: { id: npc.uuid, body: new CANNON.Body(), mesh: npc } })) || []}
             onDamageNPC={(id, amount) => {
               // Handle NPC damage through the damageNPC function
               if (damageNpcFunction) {

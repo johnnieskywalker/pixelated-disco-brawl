@@ -164,15 +164,37 @@ const Game = () => {
   
   // Handle restart game after game over
   const handleRestartGame = () => {
-    console.log("Restarting game");
+    console.log("Restarting game - completely resetting state");
+    
+    // Reset player info
+    setPlayerInfo({
+      id: 'player-1',
+      name: 'Player',
+      health: 100,
+      score: 0,
+    });
+    
+    // Reset timer
+    setTimeRemaining(300);
+    
     // Force scene remount by changing key
     setSceneKey(prevKey => prevKey + 1);
-    handleStartGame();
+    
+    // Switch to playing state
+    setGameState('playing');
+    
+    // Play background music
+    if (backgroundMusic.current) {
+      backgroundMusic.current.src = 'https://freemusicarchive.org/track/polish-girl/download/';
+      backgroundMusic.current.play().catch(error => {
+        console.error('Failed to play audio:', error);
+      });
+    }
   };
   
   // Go back to main menu (used from pause menu and game over screen)
   const handleReturnToMenu = () => {
-    console.log("Returning to main menu");
+    console.log("Returning to main menu - resetting game state");
     setGameState('menu');
     
     // Force scene remount by changing key
@@ -317,8 +339,7 @@ const Game = () => {
       <div className="scanline"></div>
       <div ref={containerRef} className="absolute inset-0">
         {/* Three.js canvas will be inserted here */}
-        {/* Always render the Scene when we're not in loading state - 
-            this ensures the player is initialized properly */}
+        {/* Only render Scene when we're not in loading state and forced remount with key */}
         {gameState !== 'loading' && (
           <Scene 
             key={sceneKey} // Add key to force remount when needed
