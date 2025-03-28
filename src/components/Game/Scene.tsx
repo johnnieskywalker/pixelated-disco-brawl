@@ -8,6 +8,7 @@ import Player from "./Player";
 import Controls from "./Controls";
 import Multiplayer from "./Multiplayer";
 import NPCManager from "./NPCManager";
+import Portal from "./Portal"; // Add this import
 
 interface SceneProps {
   containerRef: React.RefObject<HTMLDivElement>;
@@ -730,6 +731,16 @@ useEffect(() => {
             onDamagePlayer={handleDamagePlayer}
             onScoreUpdate={handleScoreUpdate}
             onRegisterDamageNPC={handleRegisterDamageNPC}
+          />
+        )}
+
+      {gameReady &&
+        sceneRef.current &&
+        playerAPI && (
+          <Portal
+            scene={sceneRef.current.scene}
+            position={new THREE.Vector3(0, 1.5, -20)} // Directly in front of the Fiat 126p
+            playerPosition={playerPosition}
           />
         )}
     </>
