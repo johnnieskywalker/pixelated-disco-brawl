@@ -231,14 +231,20 @@ const Portal = ({ scene, position = new THREE.Vector3(0, 1.5, -20), playerPositi
     };
     
     // Run collision check on each animation frame
-    const frameId = requestAnimationFrame(function checkLoop() {
+    const checkLoop = () => {
       checkCollision();
       if (!redirectingRef.current) {
-        requestAnimationFrame(checkLoop);
+        frameIdRef.current = requestAnimationFrame(checkLoop);
       }
-    });
+    };
     
-    return () => cancelAnimationFrame(frameId);
+    frameIdRef.current = requestAnimationFrame(checkLoop);
+    
+    return () => {
+      if (frameIdRef.current !== null) {
+        cancelAnimationFrame(frameIdRef.current);
+      }
+    };
   }, [playerPosition, position]);
   
   return null;
