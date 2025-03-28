@@ -107,10 +107,15 @@ const Scene = ({ containerRef, onUpdatePlayerInfo }: SceneProps) => {
       );
       physicsWorld.addBody(floorBody);
 
-      const timeStep = 1 / 60;
-      const physicsLoop = () => {
+      const timeStep = 1 / 30; // Changed from 1/60 to 1/30
+      let lastTime = 0;
+      const physicsLoop = (time) => {
         if (physicsWorld) {
-          physicsWorld.step(timeStep);
+          // Only run physics every other frame
+          if (time - lastTime >= 33) { // ~30 fps (1000ms / 30 = 33.33ms)
+            physicsWorld.step(timeStep);
+            lastTime = time;
+          }
         }
         requestAnimationFrame(physicsLoop);
       };
