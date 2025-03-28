@@ -13,6 +13,7 @@ const Portal = ({ scene, position = new THREE.Vector3(0, 1.5, -20), playerPositi
   const boxRef = useRef<THREE.Box3 | null>(null);
   const lastCheckRef = useRef<number>(0);
   const redirectingRef = useRef<boolean>(false);
+  const frameIdRef = useRef<number | null>(null);
   
   // Create and add portal to scene
   useEffect(() => {
