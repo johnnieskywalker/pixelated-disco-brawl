@@ -121,9 +121,9 @@ const Portal = ({ scene, position = new THREE.Vector3(0, 1.5, -20), playerPositi
     scene.add(portalGroup);
     portalRef.current = portalGroup;
     
-    // Create collision box - make it slightly larger than visual portal
+    // Create collision box - make it MUCH larger than visual portal for easier entry
     boxRef.current = new THREE.Box3().setFromObject(portalInner);
-    boxRef.current.expandByScalar(1); // Make collision box larger than visual portal
+    boxRef.current.expandByScalar(3); // Increased from 1 to 3 for easier collision detection
     
     console.log("Portal created at position:", position);
     
@@ -170,20 +170,28 @@ const Portal = ({ scene, position = new THREE.Vector3(0, 1.5, -20), playerPositi
       if (now - lastCheckRef.current < 100) return;
       lastCheckRef.current = now;
       
-      // Create player box
+      // Create player box - much larger to ensure collision works reliably
       const playerBox = new THREE.Box3(
         new THREE.Vector3(
-          playerPosition.x - 0.5, 
-          playerPosition.y - 1, 
-          playerPosition.z - 0.5
+          playerPosition.x - 1.5, 
+          playerPosition.y - 2, 
+          playerPosition.z - 1.5
         ),
         new THREE.Vector3(
-          playerPosition.x + 0.5, 
-          playerPosition.y + 1, 
-          playerPosition.z + 0.5
+          playerPosition.x + 1.5, 
+          playerPosition.y + 2, 
+          playerPosition.z + 1.5
         )
       );
-      
+
+      // Check for collision by distance as a backup method
+      const portalCenter = new THREE.Vector3(
+        position.x,
+        position.y,
+        position.z
+      );
+      const distanceToCenter = playerPosition.distanceTo(portalCenter);
+
       // Debug - log player position when close to portal
       const distance = playerPosition.distanceTo(position);
       if (distance < 10) {
@@ -191,10 +199,12 @@ const Portal = ({ scene, position = new THREE.Vector3(0, 1.5, -20), playerPositi
       }
       
       // Check for collision
-      if (playerBox.intersectsBox(boxRef.current)) {
+      if (distanceToCenter < 4) {
         console.log("PLAYER ENTERED PORTAL! Redirecting to portal.pieter.com");
         
         // Set flag to prevent multiple redirects
+
+
         redirectingRef.current = true;
         
         // Create portal effect before redirect
