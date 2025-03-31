@@ -1,4 +1,3 @@
-
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
@@ -445,39 +444,51 @@ export const createFloor = () => {
   const floorGeometry = new THREE.PlaneGeometry(50, 50);
   floorGeometry.rotateX(-Math.PI / 2);
 
-  // Create a checkered texture
-  const size = 512;
+  // Create a brown and yellow checkered texture
+  const size = 64;
   const data = new Uint8Array(size * size * 4);
+
+  // Brown color RGB: 139, 69, 19
+  const brownR = 139;
+  const brownG = 69;
+  const brownB = 19;
+
+  // Yellow color RGB: 255, 215, 0
+  const yellowR = 255;
+  const yellowG = 215;
+  const yellowB = 0;
 
   for (let i = 0; i < size; i++) {
     for (let j = 0; j < size; j++) {
       const index = (i * size + j) * 4;
-
-      // Checkered pattern
-      const isEvenRow = Math.floor(i / (size / 20)) % 2 === 0;
-      const isEvenCol = Math.floor(j / (size / 20)) % 2 === 0;
-
-      if (isEvenRow === isEvenCol) {
-        data[index] = 80; // R
-        data[index + 1] = 80; // G
-        data[index + 2] = 100; // B
+      
+      // Create checkered pattern
+      const isYellow = (i < size / 2 && j < size / 2) || (i >= size / 2 && j >= size / 2);
+      
+      if (isYellow) {
+        data[index] = yellowR;
+        data[index + 1] = yellowG;
+        data[index + 2] = yellowB;
       } else {
-        data[index] = 50; // R
-        data[index + 1] = 50; // G
-        data[index + 2] = 70; // B
+        data[index] = brownR;
+        data[index + 1] = brownG;
+        data[index + 2] = brownB;
       }
-
-      data[index + 3] = 255; // A
+      
+      data[index + 3] = 255; // Alpha (fully opaque)
     }
   }
 
   const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(2, 2);
+  texture.repeat.set(8, 8); // Increased repeat for smaller checkers
   texture.needsUpdate = true;
 
-  const floorMaterial = new THREE.MeshPhongMaterial({ map: texture });
+  const floorMaterial = new THREE.MeshPhongMaterial({ 
+    map: texture,
+    shininess: 30  // Add some shine for disco floor effect
+  });
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
   floor.receiveShadow = true;
 
@@ -536,44 +547,129 @@ export const createDiscoBall = (position: THREE.Vector3) => {
 };
 
 // Helper function to create Polish posters
-export const createPoster = (position: THREE.Vector3, rotation: number) => {
+export const createPoster = (position: THREE.Vector3, rotation: number, imageUrl?: string) => {
   const group = new THREE.Group();
   group.position.copy(position);
   group.rotation.y = rotation;
 
   // Poster background
   const posterGeometry = new THREE.PlaneGeometry(2, 3);
+  
+  let posterMaterial;
+  
+  if (imageUrl) {
+    // Create canvas-based placeholder while image loads
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 384;
+    const context = canvas.getContext("2d");
+    
+    if (context) {
+      // Create visible placeholder
+      context.fillStyle = "#333333";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      
+      context.fillStyle = "#FF3366";
+      context.font = "bold 36px sans-serif";
+      context.textAlign = "center";
+      context.fillText("Loading...", canvas.width / 2, canvas.height / 2);
+    }
 
-  // Create a colorful texture for the poster
-  const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 384;
-  const context = canvas.getContext("2d");
+    const placeholderTexture = new THREE.CanvasTexture(canvas);
+    posterMaterial = new THREE.MeshBasicMaterial({ 
+      map: placeholderTexture,
+      side: THREE.DoubleSide
+    });
+    
+    // Create the poster immediately with placeholder
+    const poster = new THREE.Mesh(posterGeometry, posterMaterial);
+    poster.position.y = 1.5;
+    group.add(poster);
+    
+    // Now try to load the real texture
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(
+      imageUrl, // Direct path - simpler is better
+      (loadedTexture) => {
+        console.log("✅ Poster image loaded successfully!");
+        
+        // Force texture to update properly
+        loadedTexture.needsUpdate = true;
+        loadedTexture.flipY = false; // Try without flipping Y
+        loadedTexture.encoding = THREE.sRGBEncoding;
+        loadedTexture.minFilter = THREE.LinearFilter;
+        loadedTexture.magFilter = THREE.LinearFilter;
+        
+        // Create new material with loaded texture
+        const texturedMaterial = new THREE.MeshBasicMaterial({
+          map: loadedTexture,
+          side: THREE.DoubleSide,
+          transparent: false,
+          color: 0xffffff // Full brightness
+        });
+        
+        // Replace the material and force scene update
+        if (poster && poster.material) {
+          poster.material.dispose();
+          poster.material = texturedMaterial;
+          console.log("👁️ Material updated with texture - should be visible now");
+          
+          // Trigger a render update
+          if (poster.parent && poster.parent.parent) {
+            poster.parent.parent.updateMatrix();
+          }
+        }
+      },
+      undefined, // Progress callback not needed
+      (error) => {
+        console.error("❌ Error loading poster image:", error);
+      }
+    );
+    
+    // Poster frame
+    const frameGeometry = new THREE.BoxGeometry(2.1, 3.1, 0.1);
+    const frameMaterial = new THREE.MeshPhongMaterial({ color: 0x5d4037 });
+    const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+    frame.position.set(0, 1.5, -0.05);
+    group.add(frame);
+    
+    return group;
+  } else {
+    // Default "Your ad here" poster logic
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 384;
+    const context = canvas.getContext("2d");
 
-  if (context) {
-    // Background
-    context.fillStyle = "#0D47A1";
-    context.fillRect(0, 0, canvas.width, canvas.height);
+    if (context) {
+      // Background
+      context.fillStyle = "#0D47A1";
+      context.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Text
-    context.fillStyle = "#FFC107";
-    context.font = "bold 36px sans-serif";
-    context.textAlign = "center";
-    context.fillText("TWOJA", canvas.width / 2, 100);
-    context.fillText("REKLAMA", canvas.width / 2, 150);
-    context.fillText("TUTAJ", canvas.width / 2, 200);
+      // Text
+      context.fillStyle = "#FFC107";
+      context.font = "bold 36px sans-serif";
+      context.textAlign = "center";
+      context.fillText("TWOJA", canvas.width / 2, 100);
+      context.fillText("REKLAMA", canvas.width / 2, 150);
+      context.fillText("TUTAJ", canvas.width / 2, 200);
 
-    // "Your ad here" in Polish
-    context.fillStyle = "#FFFFFF";
-    context.font = "16px sans-serif";
-    context.fillText("(Your ad here)", canvas.width / 2, 240);
+      // "Your ad here" in Polish
+      context.fillStyle = "#FFFFFF";
+      context.font = "16px sans-serif";
+      context.fillText("(Your ad here)", canvas.width / 2, 240);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    posterMaterial = new THREE.MeshBasicMaterial({ 
+      map: texture,
+      side: THREE.DoubleSide
+    });
   }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  const posterMaterial = new THREE.MeshBasicMaterial({ map: texture });
+  
   const poster = new THREE.Mesh(posterGeometry, posterMaterial);
   poster.position.y = 1.5;
-
+  
   group.add(poster);
 
   // Poster frame
@@ -581,7 +677,7 @@ export const createPoster = (position: THREE.Vector3, rotation: number) => {
   const frameMaterial = new THREE.MeshPhongMaterial({ color: 0x5d4037 });
   const frame = new THREE.Mesh(frameGeometry, frameMaterial);
   frame.position.set(0, 1.5, -0.05);
-
+  
   group.add(frame);
 
   return group;
