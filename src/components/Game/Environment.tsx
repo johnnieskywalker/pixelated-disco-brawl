@@ -351,7 +351,69 @@ const Environment = ({ scene, physicsWorld }: EnvironmentProps) => {
       },
     ];
 
+    // Move our special 1999 poster to the left side of the FRONT wall, in front of the Fiat 126p
+    const special1999Poster = createPoster(
+      // Front wall, left side, at eye level
+      new THREE.Vector3(-5, 3, -roomDepth / 2 + 0.2), 
+      Math.PI, // Rotate to face into the room from the front wall
+      '/1999.jpeg' // Use the path relative to public folder
+    );
+    // Make the poster 25% larger
+    special1999Poster.scale.set(1.25, 1.25, 1.25);
+    scene.add(special1999Poster);
+
+    // Add a spotlight to highlight the poster
+    const spotLight = new THREE.SpotLight(0xffffff, 1.5);
+    spotLight.position.set(0, 6, -roomDepth / 2 + 4);
+    spotLight.target = special1999Poster;
+    spotLight.angle = Math.PI / 6;
+    spotLight.penumbra = 0.2;
+    spotLight.decay = 1;
+    spotLight.distance = 10;
+    spotLight.castShadow = false;
+    scene.add(spotLight);
+
+    // Add a debug helper cube to locate the poster position
+    const debugBoxGeometry = new THREE.BoxGeometry(1, 1, 1);
+    const debugBoxMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+    const debugBox = new THREE.Mesh(debugBoxGeometry, debugBoxMaterial);
+    debugBox.position.copy(special1999Poster.position);
+    scene.add(debugBox);
+
+    // Set a timeout to remove the debug box after 10 seconds
+    setTimeout(() => {
+      scene.remove(debugBox);
+    }, 10000);
+
+    // Add a clearer debug frame to show where the poster should be
+    const posterDebugGeometry = new THREE.BoxGeometry(2.1, 3.1, 0.1);
+    const posterDebugMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffff00,
+      wireframe: true
+    });
+    const posterDebugFrame = new THREE.Mesh(posterDebugGeometry, posterDebugMaterial);
+    posterDebugFrame.position.copy(special1999Poster.position);
+    posterDebugFrame.rotation.copy(special1999Poster.rotation);
+    scene.add(posterDebugFrame);
+
+    // Add some text to help locate it
+    console.log("POSTER PLACED AT:", special1999Poster.position);
+
+    // Add "Your ad here" poster on the right side of the Fiat 126p
+    const adPoster = createPoster(
+      // On right wall, at the same z-position as the car (-9)
+      new THREE.Vector3(roomWidth / 2 - 0.2, 2, -9),
+      -Math.PI / 2 // Rotate to face into the room from the right wall
+    );
+    scene.add(adPoster);
+
+    // Then add the rest of the posters as before, skipping positions that might overlap
     posters.forEach((poster) => {
+      // Skip positions near where we manually placed posters to avoid overlap
+      if ((Math.abs(poster.position.x - roomWidth / 2) < 0.5 && Math.abs(poster.position.z - (-9)) < 5) ||
+          (Math.abs(poster.position.x + roomWidth / 2) < 0.5 && Math.abs(poster.position.z - (-9)) < 5)) {
+        return;
+      }
       const posterObj = createPoster(poster.position, poster.rotation);
       scene.add(posterObj);
     });
